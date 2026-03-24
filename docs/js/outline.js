@@ -97,6 +97,7 @@ const NovelOutlineGen = (function() {
       settings.model,
       settings.apiKey,
       settings.baseUrl,
+      settings.provider,
       0.7,
       800,
       responseFormat
@@ -124,6 +125,7 @@ const NovelOutlineGen = (function() {
       settings.model,
       settings.apiKey,
       settings.baseUrl,
+      settings.provider,
       0.7,
       1200,
       responseFormat
@@ -151,6 +153,7 @@ const NovelOutlineGen = (function() {
       settings.model,
       settings.apiKey,
       settings.baseUrl,
+      settings.provider,
       0.7,
       1500,
       responseFormat
@@ -185,6 +188,7 @@ const NovelOutlineGen = (function() {
         settings.model,
         settings.apiKey,
         settings.baseUrl,
+        settings.provider,
         0.7,
         1200,
         responseFormat
@@ -225,6 +229,7 @@ const NovelOutlineGen = (function() {
       settings.model,
       settings.apiKey,
       settings.baseUrl,
+      settings.provider,
       0.7,
       2000,
       responseFormat
@@ -257,6 +262,7 @@ const NovelOutlineGen = (function() {
       settings.model,
       settings.apiKey,
       settings.baseUrl,
+      settings.provider,
       0.7,
       1500,
       responseFormat

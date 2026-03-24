@@ -81,14 +81,33 @@ const NovelUI = (function() {
    * 保存全局设置
    */
   function saveGlobalSettings() {
+    const apiKey = document.getElementById('s-api-key').value.trim();
+    const baseUrl = document.getElementById('s-base-url').value.trim();
+    const channel = document.getElementById('s-channel').value;
+    const model = document.getElementById('s-model').value;
+    const temperature = parseFloat(document.getElementById('s-temp').value);
+
+    // 保存全局设置（向后兼容）
     const settings = {
-      api_key: document.getElementById('s-api-key').value.trim(),
-      base_url: document.getElementById('s-base-url').value.trim(),
-      channel: document.getElementById('s-channel').value,
-      model: document.getElementById('s-model').value,
-      temperature: parseFloat(document.getElementById('s-temp').value)
+      api_key: apiKey,
+      base_url: baseUrl,
+      channel: channel,
+      model: model,
+      temperature: temperature
     };
     NovelStorage.saveSettings(settings);
+
+    // 同时保存到多提供商存储
+    const activeProvider = NovelStorage.getActiveProvider();
+    const providerConfig = {
+      apiKey: apiKey,
+      model: model
+    };
+    if (baseUrl) {
+      providerConfig.baseUrl = baseUrl;
+    }
+    NovelStorage.saveProviderConfig(activeProvider, providerConfig);
+
     NovelUtils.toast('全局设置已保存');
   }
 
@@ -136,7 +155,7 @@ const NovelUI = (function() {
   }
 
   /**
-   * 应用页道默认设置
+   * 应用页道默认设置并切换提供商
    */
   function applyChannelDefaults() {
     const channel = document.getElementById('s-channel').value;
@@ -149,6 +168,19 @@ const NovelUI = (function() {
     if (urlMap[channel] !== undefined) {
       document.getElementById('s-base-url').value = urlMap[channel];
     }
+
+    // 切换活跃的提供商
+    NovelStorage.setActiveProvider(channel);
+
+    // 加载新提供商的配置
+    const providerConfig = NovelStorage.getProviderConfig(channel);
+    const provider = NovelProviders.getProvider(channel);
+
+    // 更新表单字段显示
+    document.getElementById('s-api-key').value = providerConfig.apiKey || '';
+    document.getElementById('s-model').value = providerConfig.model || (provider ? provider.defaultModel : '');
+
+    NovelUtils.toast(`已切换到 ${provider ? provider.name : channel}`);
   }
 
   /**

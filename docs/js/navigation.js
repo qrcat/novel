@@ -327,12 +327,22 @@ const NovelNav = (function() {
    */
   function initializeSettingsUI() {
     const settings = NovelStorage.getSettings();
-    document.getElementById('s-api-key').value = settings.api_key || '';
-    document.getElementById('s-base-url').value = settings.base_url || '';
-    document.getElementById('s-channel').value = settings.channel || 'dashscope';
-    document.getElementById('s-model').value = settings.model || 'qwen-plus';
-    document.getElementById('s-temp').value = settings.temperature || 0.8;
-    document.getElementById('s-temp-label').textContent = (settings.temperature || 0.8).toFixed(2);
+    const activeProvider = NovelStorage.getActiveProvider();
+    const providerConfig = NovelStorage.getProviderConfig(activeProvider);
+    const provider = NovelProviders.getProvider(activeProvider);
+
+    // 优先从多提供商配置读取，否则回退到旧设置
+    const apiKey = providerConfig.apiKey || settings.api_key || '';
+    const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
+    const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
+    const temperature = settings.temperature || 0.8;
+
+    document.getElementById('s-api-key').value = apiKey;
+    document.getElementById('s-base-url').value = baseUrl;
+    document.getElementById('s-channel').value = activeProvider || 'dashscope';
+    document.getElementById('s-model').value = model;
+    document.getElementById('s-temp').value = temperature;
+    document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
   }
 
   /**
