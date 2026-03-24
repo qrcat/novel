@@ -874,15 +874,16 @@
       return;
     }
     container.innerHTML = chars.map(function(c) {
+      var charId = c.id || c.character_name || c.name || uuid();
       var role = c.role || '配角';
       var roleColor = role === '主角' ? 'var(--accent)' : role === '反派' ? '#e53e3e' : 'var(--muted)';
-      return '<div class="char-card" data-id="' + esc(c.id || '') + '">' +
+      return '<div class="char-card" data-id="' + esc(charId) + '">' +
         '<div style="display:flex;align-items:flex-start;margin-bottom:.5rem">' +
         '<div style="flex:1">' +
         '<div style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.15rem">' + esc(c.character_name || c.name || '未命名') + '</div>' +
         '<div style="font-size:.72rem;color:' + roleColor + ';font-weight:500;letter-spacing:.03em;text-transform:uppercase">' + esc(role) + '</div>' +
         '</div>' +
-        '<button class="btn btn-ghost char-edit-btn" data-edit="' + esc(c.id || '') + '" style="font-size:.72rem;padding:.2rem .5rem;flex-shrink:0">编辑</button>' +
+        '<button class="btn btn-ghost char-edit-btn" data-edit="' + esc(charId) + '" style="font-size:.72rem;padding:.2rem .5rem;flex-shrink:0">编辑</button>' +
         '</div>' +
         '<div style="font-size:.78rem;color:var(--muted);line-height:1.6">' +
         (c.personality ? esc(c.personality).substring(0, 80) + (c.personality.length > 80 ? '…' : '') : '暂无性格描述') +
@@ -899,7 +900,9 @@
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var cid = btn.getAttribute('data-edit');
-        var char = (currentProject.characters || []).find(function(c) { return c.id === cid; });
+        var char = (currentProject.characters || []).find(function(c) { 
+          return (c.id || c.character_name || c.name || uuid()) === cid;
+        });
         if (char) openCharModal(char);
       });
     });
@@ -951,7 +954,8 @@
     overlay.classList.remove('hidden');
     var container = document.getElementById('char-form-container');
     container.innerHTML = getCharFormHTML(char);
-    var isEdit = !!(char && char.id);
+    var isEdit = !!(char && (char.id || char.character_name || char.name));
+    var charKey = char ? (char.id || char.character_name || char.name) : null;
     document.getElementById('char-modal-title').textContent = isEdit ? '编辑角色' : '添加角色';
     document.getElementById('cf-name').focus();
     document.getElementById('cf-cancel').addEventListener('click', closeCharModal);
@@ -962,7 +966,7 @@
       var relStr = document.getElementById('cf-relationships').value.trim();
       var relationships = relStr ? relStr.split(/[,，]/).map(function(s) { return s.trim(); }).filter(Boolean) : [];
       var charData = {
-        id: char && char.id || uuid(),
+        id: char && (char.id || char.character_name || char.name) || uuid(),
         character_name: name,
         name: name,
         role: document.getElementById('cf-role').value,
@@ -974,7 +978,9 @@
         system_prompt_override: document.getElementById('cf-system-prompt').value.trim()
       };
       if (isEdit) {
-        var idx = currentProject.characters.findIndex(function(c) { return c.id === char.id; });
+        var idx = currentProject.characters.findIndex(function(c) { 
+          return (c.id || c.character_name || c.name) === charKey;
+        });
         if (idx >= 0) currentProject.characters[idx] = charData;
       } else {
         currentProject.characters.push(charData);
@@ -988,7 +994,9 @@
     if (isEdit) {
       document.getElementById('cf-delete').addEventListener('click', function() {
         if (!confirm('确定删除角色「' + (char.character_name || char.name) + '」？')) return;
-        currentProject.characters = (currentProject.characters || []).filter(function(c) { return c.id !== char.id; });
+        currentProject.characters = (currentProject.characters || []).filter(function(c) { 
+          return (c.id || c.character_name || c.name) !== charKey;
+        });
         currentProject.updated_at = new Date().toISOString();
         save();
         closeCharModal();
