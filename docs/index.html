@@ -200,7 +200,8 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
     </div>
     <div>
       <div class="panel-title">数据操作</div>
-      <div style="display:flex;gap:.5rem">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btn-save-project" style="flex:1;font-size:.8rem">💾 保存配置</button>
         <button class="btn btn-ghost" id="btn-export" style="flex:1;font-size:.8rem">导出</button>
         <button class="btn btn-danger" id="btn-delete" style="flex:1;font-size:.8rem">删除</button>
       </div>

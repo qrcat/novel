@@ -1059,6 +1059,8 @@
     if (btnExport) btnExport.addEventListener('click', exportProject);
     var btnDelete = document.getElementById('btn-delete');
     if (btnDelete) btnDelete.addEventListener('click', deleteCurrentProject);
+    var btnSaveProjectSidebar = document.getElementById('btn-save-project');
+    if (btnSaveProjectSidebar) btnSaveProjectSidebar.addEventListener('click', saveProject);
 
     // Project edit
     var btnEditProject = document.getElementById('btn-edit-project');
