@@ -82,7 +82,7 @@ const NovelWriter = (function() {
       .then(() => {
         // 保存生成的内容
         NovelUtils.setProgress(95);
-        NovelProject.updateProject(project.id, {
+        NovelStorage.updateProject(project.id, {
           novel_text: novelContent,
           writing_chapter: generatedCount + targetChapters.length
         });
@@ -167,15 +167,8 @@ ${previousSummary}
 })();
 
 // 全局函数供 HTML onclick 使用
-window.generateRound = function(rounds) {
-  // 如果没有传入轮数，则根据点击的按钮判断
-  if (rounds === undefined) {
-    const btn = document.activeElement;
-    rounds = btn?.id === 'btn-round2' ? 3 : 1;
-  }
-  if (NovelWriter && NovelWriter.generateRound) {
-    NovelWriter.generateRound(rounds);
-  } else {
-    console.error('NovelWriter 未初始化或 generateRound 方法不存在');
-  }
-};
+function generateRound() {
+  const btn = event?.target;
+  const rounds = btn?.id === 'btn-round2' ? 3 : 1;
+  NovelWriter.generateRound(rounds);
+}
