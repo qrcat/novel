@@ -1,0 +1,22 @@
+/**
+ * ⚠️ DEPRECATED - 已过时
+ * 
+ * 这是原始的未重构版本，已被模块化架构取代
+ * 请使用 docs/js/ 目录下的模块化代码
+ * 
+ * 参考重构说明：REFACTORING.md
+ * 
+ * 保留此文件仅供参考和版本控制
+ */
+
+// 此文件已被以下模块取代：
+// - docs/js/storage.js    (存储管理)
+// - docs/js/utils.js      (工具函数)  
+// - docs/js/api.js        (API调用)
+// - docs/js/project.js    (项目管理)
+// - docs/js/navigation.js (导航&页面)
+// - docs/js/ui.js         (用户界面)
+// - docs/js/outline.js    (大纲生成)
+// - docs/js/app.js        (应用启动)
+
+console.warn('[NovelAgents] 警告：index.js 已过时，请使用模块化版本 (docs/js/)')
