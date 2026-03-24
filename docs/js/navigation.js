@@ -347,14 +347,40 @@ const NovelNav = (function() {
    * 获取当前活跃的设置（项目设置优先于全局设置）
    */
   function getActiveSettings() {
-    const globalSettings = NovelStorage.getSettings();
-    if (!currentProject) return globalSettings;
+    const activeProvider = NovelStorage.getActiveProvider();
+    const providerConfig = NovelStorage.getProviderConfig(activeProvider);
+    const provider = NovelProviders.getProvider(activeProvider);
+
+    if (!provider) {
+      return getFallbackSettings();
+    }
+
+    const baseUrl = activeProvider === 'custom' 
+      ? (providerConfig.baseUrl || '') 
+      : provider.baseUrl;
 
     return {
-      apiKey: currentProject.api_key || globalSettings.api_key,
-      baseUrl: currentProject.base_url || globalSettings.base_url,
-      model: currentProject.model || globalSettings.model,
-      temperature: currentProject.temperature || globalSettings.temperature
+      provider: activeProvider,
+      apiKey: providerConfig.apiKey || '',
+      baseUrl: baseUrl,
+      model: providerConfig.model || provider.defaultModel,
+      temperature: NovelStorage.getSettings().temperature || 0.8,
+      providerInfo: provider
+    };
+  }
+
+  /**
+   * 获取备用设置（当活跃提供商配置不完整时）
+   */
+  function getFallbackSettings() {
+    const settings = NovelStorage.getSettings();
+    return {
+      provider: 'dashscope',
+      apiKey: settings.api_key || '',
+      baseUrl: settings.base_url || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      model: settings.model || 'qwen-plus',
+      temperature: settings.temperature || 0.8,
+      providerInfo: NovelProviders.getProvider('dashscope')
     };
   }
 

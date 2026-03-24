@@ -1,17 +1,28 @@
 /**
  * Storage Module
- * 处理本地存储的所有操作（全局设置、项目列表）
+ * 处理本地存储的所有操作（全局设置、项目列表、多提供商配置）
  */
 const NovelStorage = (function() {
   const GLOBAL_KEY = 'na_settings';
   const PROJECTS_KEY = 'na_projects';
+  const PROVIDERS_KEY = 'na_providers';  // 存储多个提供商的API Key配置
 
   const DEFAULT_SETTINGS = {
+    activeProvider: 'dashscope',  // 当前活跃的提供商
+    temperature: 0.8,
+    // 以下字段保留向后兼容
     api_key: '',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     channel: 'dashscope',
-    model: 'qwen-plus',
-    temperature: 0.8
+    model: 'qwen-plus'
+  };
+
+  // 默认的提供商配置
+  const DEFAULT_PROVIDERS = {
+    dashscope: { apiKey: '', model: 'qwen-plus' },
+    openai: { apiKey: '', model: 'gpt-4o' },
+    claude: { apiKey: '', model: 'claude-opus' },
+    custom: { apiKey: '', baseUrl: '', model: 'custom-model' }
   };
 
   return {
@@ -30,6 +41,48 @@ const NovelStorage = (function() {
     resetSettings() {
       localStorage.removeItem(GLOBAL_KEY);
     },
+
+    // ========== 多提供商管理 ==========
+
+    // 获取所有提供商配置
+    getAllProviderConfigs() {
+      const stored = localStorage.getItem(PROVIDERS_KEY);
+      return stored ? JSON.parse(stored) : DEFAULT_PROVIDERS;
+    },
+
+    // 获取特定提供商配置
+    getProviderConfig(providerId) {
+      const configs = this.getAllProviderConfigs();
+      return configs[providerId] || DEFAULT_PROVIDERS[providerId] || {};
+    },
+
+    // 保存提供商配置
+    saveProviderConfig(providerId, config) {
+      const configs = this.getAllProviderConfigs();
+      configs[providerId] = config;
+      localStorage.setItem(PROVIDERS_KEY, JSON.stringify(configs));
+    },
+
+    // 设置活跃提供商
+    setActiveProvider(providerId) {
+      const settings = this.getSettings();
+      settings.activeProvider = providerId;
+      this.saveSettings(settings);
+    },
+
+    // 获取活跃提供商ID
+    getActiveProvider() {
+      const settings = this.getSettings();
+      return settings.activeProvider || 'dashscope';
+    },
+
+    // 获取活跃提供商的当前配置
+    getActiveProviderConfig() {
+      const providerId = this.getActiveProvider();
+      return this.getProviderConfig(providerId);
+    },
+
+    // ========== 项目管理 ==========
 
     // 获取所有项目
     getProjects() {
