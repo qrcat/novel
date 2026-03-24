@@ -97,8 +97,7 @@ const NovelUI = (function() {
     };
     NovelStorage.saveSettings(settings);
 
-    // 同时保存到多提供商存储
-    const activeProvider = NovelStorage.getActiveProvider();
+    // 同时保存到多提供商存储（使用用户刚选择的 channel，而不是旧的 activeProvider）
     const providerConfig = {
       apiKey: apiKey,
       model: model
@@ -106,7 +105,10 @@ const NovelUI = (function() {
     if (baseUrl) {
       providerConfig.baseUrl = baseUrl;
     }
-    NovelStorage.saveProviderConfig(activeProvider, providerConfig);
+    NovelStorage.saveProviderConfig(channel, providerConfig);
+    
+    // 更新活跃提供商
+    NovelStorage.setActiveProvider(channel);
 
     NovelUtils.toast('全局设置已保存');
   }
@@ -133,6 +135,7 @@ const NovelUI = (function() {
 
     const apiKey = document.getElementById('s-api-key').value.trim();
     const baseUrl = document.getElementById('s-base-url').value.trim();
+    const channel = document.getElementById('s-channel').value;
     const model = document.getElementById('s-model').value;
 
     if (!apiKey || !baseUrl) {
@@ -141,7 +144,7 @@ const NovelUI = (function() {
       return;
     }
 
-    NovelAPI.testConnection(apiKey, baseUrl, model)
+    NovelAPI.testConnection(apiKey, baseUrl, model, channel)
       .then(r => {
         const usage = r.usage || {};
         el.textContent = '连接成功! tokens: ' + (usage.prompt_tokens || '?') + 
@@ -253,7 +256,78 @@ const NovelUI = (function() {
       sTemp.addEventListener('input', (e) => updateTemperatureLabel(e.target.value));
     }
 
+    // 角色新增按钮
+    const btnAddChar = document.getElementById('btn-add-char');
+    if (btnAddChar) {
+      btnAddChar.addEventListener('click', showAddCharModal);
+    }
+
     console.log('[NovelAgents] UI events bound');
+  }
+
+  /**
+   * 显示新增角色的弹窗
+   */
+  function showAddCharModal() {
+    const project = NovelNav.getCurrentProject();
+    if (!project) return;
+
+    const name = prompt('请输入角色名称：');
+    if (!name) return;
+
+    const personality = prompt('请输入角色性格或描述：');
+    const character = {
+      character_name: name,
+      name: name,
+      personality: personality || '',
+      initial_state: personality || '',
+      final_state: '',
+      key_changes: [],
+      conflicts: []
+    };
+
+    NovelProject.addCharacter(project.id, character);
+    NovelNav.applyProjectToUI();
+    NovelUtils.toast('已添加角色：' + name);
+  }
+
+  /**
+   * 编辑角色
+   */
+  function editCharacter(index) {
+    const project = NovelNav.getCurrentProject();
+    if (!project || !project.characters || !project.characters[index]) return;
+
+    const char = project.characters[index];
+    const newName = prompt('编辑角色名称：', char.character_name || char.name);
+    if (!newName) return;
+
+    const newPersonality = prompt('编辑角色描述：', char.personality || char.initial_state);
+
+    char.character_name = newName;
+    char.name = newName;
+    char.personality = newPersonality || char.personality;
+    char.initial_state = newPersonality || char.initial_state;
+
+    NovelProject.updateProject(project.id, { characters: project.characters });
+    NovelNav.applyProjectToUI();
+    NovelUtils.toast('已更新角色：' + newName);
+  }
+
+  /**
+   * 删除角色
+   */
+  function deleteCharacter(index) {
+    const project = NovelNav.getCurrentProject();
+    if (!project || !project.characters || !project.characters[index]) return;
+
+    const char = project.characters[index];
+    if (!confirm('确定删除角色「' + (char.character_name || char.name) + '」吗？')) return;
+
+    project.characters.splice(index, 1);
+    NovelProject.updateProject(project.id, { characters: project.characters });
+    NovelNav.applyProjectToUI();
+    NovelUtils.toast('已删除角色');
   }
 
   return {
@@ -268,6 +342,9 @@ const NovelUI = (function() {
     testConnection,
     applyChannelDefaults,
     updateTemperatureLabel,
-    bindAllEvents
+    bindAllEvents,
+    editCharacter,
+    deleteCharacter,
+    showAddCharModal
   };
 })();

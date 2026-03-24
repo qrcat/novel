@@ -94,7 +94,7 @@ const NovelProviders = (function() {
     }
 
     // 标准OpenAI格式测试
-    return NovelAPI.testConnection(apiKey, baseUrl, testModel);
+    return NovelAPI.testConnection(apiKey, baseUrl, testModel, providerId);
   }
 
   // Claude API特殊验证

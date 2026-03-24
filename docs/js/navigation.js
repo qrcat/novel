@@ -314,8 +314,12 @@ const NovelNav = (function() {
   function renderCharListPreview(characters) {
     const el = document.getElementById('char-list');
     if (!el) return;
-    el.innerHTML = characters.map(c => `
-      <div class="char-card">
+    el.innerHTML = characters.map((c, idx) => `
+      <div class="char-card" style="position:relative">
+        <div style="position:absolute;top:.3rem;right:.3rem;display:flex;gap:.2rem">
+          <button class="icon-btn" onclick="NovelUI.editCharacter(${idx})" title="编辑">✎</button>
+          <button class="icon-btn danger" onclick="NovelUI.deleteCharacter(${idx})" title="删除">✕</button>
+        </div>
         <div class="char-name">${NovelUtils.escape(c.character_name || c.name || '')}</div>
         <div class="char-desc">${NovelUtils.escape(c.personality || c.initial_state || '')}</div>
       </div>
