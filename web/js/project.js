@@ -48,7 +48,7 @@ const NovelProject = (function() {
   }
 
   /**
-   * 导出项目为JSON
+   * 导出项目为 JSON
    */
   function exportProject(project) {
     const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
@@ -58,6 +58,25 @@ const NovelProject = (function() {
     a.download = (project.title || 'novel') + '.json';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * 保存正文为 TXT 文件
+   */
+  function saveNovelTextAsTxt(project) {
+    if (!project) return;
+    if (!project.novel_text) {
+      NovelUtils.toast('还没有正文内容', 'error');
+      return;
+    }
+    const blob = new Blob([project.novel_text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (project.title || 'novel') + '.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    NovelUtils.toast('正文已保存为 TXT 文件');
   }
 
   /**
@@ -148,6 +167,7 @@ const NovelProject = (function() {
     editProject,
     deleteProject,
     exportProject,
+    saveNovelTextAsTxt,
     addCharacter,
     updateCharacter,
     deleteCharacter,

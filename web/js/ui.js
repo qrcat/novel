@@ -222,10 +222,27 @@ const NovelUI = (function() {
     }
 
     // 标签页切换
-    ['output', 'novel', 'outline'].forEach(tab => {
+    ['output', 'outline'].forEach(tab => {
       const el = document.getElementById('tab-' + tab);
       if (el) el.addEventListener('click', () => NovelNav.showTab(tab));
     });
+
+    // 正文按钮：显示正文内容
+    const btnNovelTab = document.getElementById('btn-novel-tab');
+    if (btnNovelTab) {
+      btnNovelTab.addEventListener('click', () => {
+        NovelNav.showTab('novel');
+      });
+    }
+
+    // 保存正文按钮：下载为 txt 文件
+    const btnSaveText = document.getElementById('btn-save-text');
+    if (btnSaveText) {
+      btnSaveText.addEventListener('click', () => {
+        const project = NovelNav.getCurrentProject();
+        NovelProject.saveNovelTextAsTxt(project);
+      });
+    }
 
     // 大纲生成按钮（会在大纲生成模块中添加）
     // 写作按钮（会在写作模块中添加）

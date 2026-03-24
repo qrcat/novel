@@ -87,10 +87,8 @@ const NovelWriter = (function() {
           writing_chapter: generatedCount + targetChapters.length
         });
         
-        // 更新 UI
+        // 更新UI
         NovelNav.applyProjectToUI();
-        // 自动切换到正文 Tab，让用户立即看到生成的内容
-        NovelNav.showTab('novel');
         NovelUtils.log('小说内容已保存', 'success');
         NovelUtils.toast(`成功生成 ${targetChapters.length} 章内容`, 'success');
       })

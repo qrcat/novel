@@ -109,8 +109,8 @@ const NovelNav = (function() {
     const outlinePanel = document.getElementById('outline-panel');
     const novelPanel = document.getElementById('novel-panel');
     
-    // 切换右侧 Tab 面板
-    ['output', 'novel', 'outline'].forEach(t => {
+    // 切换右侧 Tab 面板（仅 output 和 outline）
+    ['output', 'outline'].forEach(t => {
       const panel = document.getElementById('panel-' + t);
       const tab = document.getElementById('tab-' + t);
       if (panel) panel.classList.toggle('hidden', t !== tabName);
@@ -123,6 +123,7 @@ const NovelNav = (function() {
         outlinePanel.classList.remove('hidden');
         novelPanel.classList.add('hidden');
       } else if (tabName === 'novel') {
+        // 点击正文按钮时，隐藏大纲，显示正文
         outlinePanel.classList.add('hidden');
         novelPanel.classList.remove('hidden');
       } else {
