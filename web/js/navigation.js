@@ -106,18 +106,31 @@ const NovelNav = (function() {
    * 显示指定标签页
    */
   function showTab(tabName) {
-    const tabMap = {
-      'output': ['panel-output', 'tab-output'],
-      'novel': ['panel-novel', 'tab-novel'],
-      'outline': ['panel-outline', 'tab-outline']
-    };
-
+    const outlinePanel = document.getElementById('outline-panel');
+    const novelPanel = document.getElementById('novel-panel');
+    
+    // 切换右侧 Tab 面板
     ['output', 'novel', 'outline'].forEach(t => {
       const panel = document.getElementById('panel-' + t);
       const tab = document.getElementById('tab-' + t);
-      if (panel) panel.classList.toggle('hidden', t !== tabName && t !== 'output');
+      if (panel) panel.classList.toggle('hidden', t !== tabName);
       if (tab) tab.classList.toggle('active', t === tabName);
     });
+
+    // 切换中间区域的内容显示
+    if (outlinePanel && novelPanel) {
+      if (tabName === 'outline') {
+        outlinePanel.classList.remove('hidden');
+        novelPanel.classList.add('hidden');
+      } else if (tabName === 'novel') {
+        outlinePanel.classList.add('hidden');
+        novelPanel.classList.remove('hidden');
+      } else {
+        // output tab - 保持大纲显示
+        outlinePanel.classList.remove('hidden');
+        novelPanel.classList.add('hidden');
+      }
+    }
   }
 
   /**
@@ -270,7 +283,9 @@ const NovelNav = (function() {
     // 渲染小说文本
     if (currentProject.novel_text) {
       const novelPanel = document.getElementById('novel-panel');
+      const novelTabContent = document.getElementById('novel-tab-content');
       if (novelPanel) novelPanel.textContent = currentProject.novel_text;
+      if (novelTabContent) novelTabContent.textContent = currentProject.novel_text;
     }
   }
 
@@ -280,6 +295,7 @@ const NovelNav = (function() {
   function renderOutline(outline) {
     const main = document.getElementById('outline-content');
     const side = document.getElementById('outline-sidebar-content');
+    const outlineEmpty = document.getElementById('outline-empty');
     if (!main || !side) return;
 
     let mainHTML = '';
@@ -303,9 +319,62 @@ const NovelNav = (function() {
       </div>`;
     }
 
+    // 章节列表
+    if (outline.chapters && outline.chapters.length) {
+      mainHTML += `<div style="margin-bottom:1.25rem">
+        <div class="panel-title" style="margin-bottom:.5rem">章节列表</div>
+        ${outline.chapters.map(ch => `
+          <div class="chapter-block">
+            <div class="chapter-num">第${ch.chapter_number}章</div>
+            <div class="chapter-title">${NovelUtils.escape(ch.chapter_title || '')}</div>
+            <div class="chapter-one-sentence">${NovelUtils.escape(ch.one_sentence || '')}</div>
+            ${ch.expanded_paragraph ? `<div style="font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.6">${NovelUtils.escape(ch.expanded_paragraph)}</div>` : ''}
+            ${ch.key_events && ch.key_events.length ? `<div class="chapter-meta"><span class="cur">关键事件</span>${ch.key_events.map(e => `<span>${NovelUtils.escape(e)}</span>`).join('')}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>`;
+    }
+
+    // 角色弧线（用于右侧边栏）
+    if (outline.character_arcs && outline.character_arcs.length) {
+      sideHTML += `<div style="margin-bottom:1rem">
+        <div class="panel-title" style="margin-bottom:.5rem">角色弧线</div>
+        ${outline.character_arcs.map(arc => `
+          <div class="arc-block">
+            <div class="arc-name">${NovelUtils.escape(arc.character_name || '')}</div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:.3rem;line-height:1.6">
+              ${arc.initial_state ? '初始：' + NovelUtils.escape(arc.initial_state) + '<br>' : ''}
+              ${arc.final_state ? '终态：' + NovelUtils.escape(arc.final_state) : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+    }
+
+    // 世界观（用于右侧边栏）
+    if (outline.world_building && Object.keys(outline.world_building).length) {
+      const wb = outline.world_building;
+      sideHTML += `<div style="margin-bottom:1rem">
+        <div class="panel-title" style="margin-bottom:.5rem">世界观</div>
+        ${wb.time_period ? `<div class="world-rule"><strong>时代：</strong>${NovelUtils.escape(wb.time_period)}</div>` : ''}
+        ${wb.location ? `<div class="world-rule"><strong>地点：</strong>${NovelUtils.escape(wb.location)}</div>` : ''}
+        ${wb.atmosphere ? `<div class="world-rule"><strong>氛围：</strong>${NovelUtils.escape(wb.atmosphere)}</div>` : ''}
+        ${wb.rules_of_world && wb.rules_of_world.length ? wb.rules_of_world.map(r => `<div class="world-rule">${NovelUtils.escape(r)}</div>`).join('') : ''}
+      </div>`;
+    }
+
+    // 更新中间区域
     main.innerHTML = mainHTML || '<div style="color:var(--muted);text-align:center;padding:3rem">大纲内容为空</div>';
+    
+    // 更新右侧边栏
     sideHTML = sideHTML || '<div style="color:var(--muted);font-size:.85rem">暂无大纲概要</div>';
     side.innerHTML = sideHTML;
+
+    // 显示/隐藏空状态提示
+    if (outlineEmpty) {
+      outlineEmpty.classList.add('hidden');
+    }
+    main.classList.remove('hidden');
   }
 
   /**

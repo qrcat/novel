@@ -100,9 +100,9 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .arc-arrow{font-size:.75rem;color:var(--muted);margin:.2rem 0}
 .world-rule{display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;font-size:.82rem}
 .world-rule::before{content:\25c8;color:var(--accent);flex-shrink:0}
-.novel-text{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;font-size:.9rem;line-height:2;white-space:pre-wrap;word-break:break-word}
+.novel-text{flex:1;overflow-y:auto;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto}
 .output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
-.output-box:empty::before{content:\'等待生成...\';color:var(--muted)}
+.output-box:empty::before{content:'等待生成...';color:var(--muted)}
 .log-entry{margin-bottom:.15rem}
 .log-phase{color:var(--accent2)}
 .log-error{color:var(--danger)}
@@ -192,7 +192,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
       </div>
       <div id="outline-content" class="hidden"></div>
     </div>
-    <textarea class="novel-text hidden" id="novel-panel" placeholder="正文将在此显示，支持直接编辑..."></textarea>
+    <div class="novel-text hidden" id="novel-panel"></div>
   </section>
 
   <aside class="right-panel">
@@ -202,18 +202,13 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
       <div class="tab" id="tab-outline">大纲</div>
     </div>
     <div class="panel-content" id="panel-output">
-      <div style="display:flex;flex-direction:column;gap:.5rem">
-        <button class="btn btn-primary" id="btn-outline2" style="width:100%">生成大纲</button>
-        <button class="btn btn-ghost" id="btn-round2" disabled style="width:100%" onclick="window.generateRound(3)">写一段（3轮）</button>
-        <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      </div>
       <div class="output-box" id="output-box"></div>
     </div>
     <div class="panel-content hidden" id="panel-novel">
-      <div id="novel-tab-content" style="overflow-y:auto;flex:1;padding:0;font-size:.85rem;white-space:pre-wrap"></div>
+      <div id="novel-tab-content" style="overflow-y:auto;flex:1;padding:1rem;font-size:.9rem;line-height:2;white-space:pre-wrap;word-break:break-word"></div>
     </div>
     <div class="panel-content hidden" id="panel-outline">
-      <div id="outline-sidebar-content" style="font-size:.82rem;line-height:1.8"></div>
+      <div id="outline-sidebar-content" style="font-size:.85rem;line-height:1.8"></div>
     </div>
   </aside>
 </div>

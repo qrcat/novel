@@ -368,20 +368,25 @@
     ['output', 'novel', 'outline'].forEach(function(t) {
       var panel = document.getElementById('panel-' + t);
       var tabEl = document.getElementById('tab-' + t);
-      if (panel) panel.classList.toggle('hidden', t !== tab && t !== 'output');
+      if (panel) panel.classList.toggle('hidden', t !== tab);
       if (tabEl) tabEl.classList.toggle('active', t === tab);
     });
+    
+    // 切换中间区域的内容显示
     var mainOutline = document.getElementById('outline-panel');
     var mainNovel = document.getElementById('novel-panel');
-    if (tab === 'outline') {
-      if (mainOutline) mainOutline.style.display = '';
-      if (mainNovel) mainNovel.style.display = 'none';
-    } else if (tab === 'novel') {
-      if (mainOutline) mainOutline.style.display = 'none';
-      if (mainNovel) mainNovel.style.display = '';
-    } else {
-      if (mainOutline) mainOutline.style.display = 'none';
-      if (mainNovel) mainNovel.style.display = 'none';
+    if (mainOutline && mainNovel) {
+      if (tab === 'outline') {
+        mainOutline.classList.remove('hidden');
+        mainNovel.classList.add('hidden');
+      } else if (tab === 'novel') {
+        mainOutline.classList.add('hidden');
+        mainNovel.classList.remove('hidden');
+      } else {
+        // output tab - 保持大纲显示
+        mainOutline.classList.remove('hidden');
+        mainNovel.classList.add('hidden');
+      }
     }
   }
 
