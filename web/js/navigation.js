@@ -433,12 +433,16 @@ const NovelNav = (function() {
       ? (providerConfig.baseUrl || '') 
       : provider.baseUrl;
 
+    // 从全局设置中读取 maxLoops
+    const globalSettings = NovelStorage.getSettings();
+
     return {
       provider: activeProvider,
       apiKey: providerConfig.apiKey || '',
       baseUrl: baseUrl,
       model: providerConfig.model || provider.defaultModel,
-      temperature: NovelStorage.getSettings().temperature || 0.8,
+      temperature: globalSettings.temperature || 0.8,
+      maxLoops: globalSettings.maxLoops || 100, // 新增：包含 maxLoops
       providerInfo: provider
     };
   }
@@ -454,6 +458,7 @@ const NovelNav = (function() {
       baseUrl: settings.base_url || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       model: settings.model || 'qwen-plus',
       temperature: settings.temperature || 0.8,
+      maxLoops: settings.maxLoops || 100, // 新增：包含 maxLoops
       providerInfo: NovelProviders.getProvider('dashscope')
     };
   }

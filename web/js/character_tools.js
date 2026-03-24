@@ -144,6 +144,77 @@ const CharacterTools = (function() {
             required: ['chapter_summary']
           }
         }
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'manage_character',
+          description: '管理角色信息：创建新角色、修改现有角色设定或在写作过程中动态调整角色属性。当你需要在写作过程中新增角色、修改角色性格/状态/关系时使用此工具。',
+          parameters: {
+            type: 'object',
+            properties: {
+              action: {
+                type: 'string',
+                description: '操作类型：create(创建新角色) 或 update(修改现有角色)',
+                enum: ['create', 'update']
+              },
+              character_name: {
+                type: 'string',
+                description: '角色名称'
+              },
+              character_info: {
+                type: 'object',
+                properties: {
+                  personality: {
+                    type: 'string',
+                    description: '性格特点'
+                  },
+                  initial_state: {
+                    type: 'string',
+                    description: '初始状态或出场时的情况'
+                  },
+                  final_state: {
+                    type: 'string',
+                    description: '最终状态或角色弧光终点'
+                  },
+                  relationships: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: '与其他角色的关系描述'
+                  },
+                  key_changes: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: '关键变化点'
+                  },
+                  conflicts: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: '内心或外部冲突'
+                  },
+                  background: {
+                    type: 'string',
+                    description: '背景故事'
+                  },
+                  appearance: {
+                    type: 'string',
+                    description: '外貌描述'
+                  },
+                  role_in_story: {
+                    type: 'string',
+                    description: '在故事中的作用（主角、配角、反派等）'
+                  }
+                },
+                description: '角色的详细信息'
+              },
+              reason: {
+                type: 'string',
+                description: '为什么需要创建/修改这个角色（剧情需要说明）'
+              }
+            },
+            required: ['action', 'character_name', 'character_info']
+          }
+        }
       }
     ];
   }
@@ -628,9 +699,7 @@ ${situation}
       tool: 'get_character_emotion',
       character: charName,
       emotion: '[需要分析情景后确定]',
-      intensity: 'medium',
-      change: '[待确定]',
-      trigger: args.trigger_event || situation
+      reasoning: `基于${charName}在情景中的反应`
     };
   }
 
@@ -686,6 +755,159 @@ ${situation}
 - 生动具体，有细节描写
 - 考虑与其他角色的互动关系
 - 推动情节发展`;
+  }
+
+  /**
+   * 处理角色管理工具调用
+   * @param {Object} toolCall - 工具调用对象
+   * @param {Object} project - 项目对象
+   * @returns {Promise<Object>} 处理结果
+   */
+  async function handleManageCharacter(toolCall, project) {
+    const functionName = toolCall.function.name;
+    const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
+    
+    NovelUtils.log(`检测到角色管理操作：${functionArgs.action} - ${functionArgs.character_name}`, 'tool');
+    
+    try {
+      if (functionArgs.action === 'create') {
+        // 创建新角色
+        return await createNewCharacter(functionArgs, project);
+      } else if (functionArgs.action === 'update') {
+        // 更新现有角色
+        return await updateExistingCharacter(functionArgs, project);
+      } else {
+        throw new Error(`未知的操作类型：${functionArgs.action}`);
+      }
+    } catch (err) {
+      NovelUtils.log(`角色管理失败：${err.message}`, 'error');
+      return {
+        type: 'manage_character_error',
+        error: err.message,
+        action: functionArgs.action,
+        character_name: functionArgs.character_name
+      };
+    }
+  }
+
+  /**
+   * 创建新角色
+   */
+  async function createNewCharacter(args, project) {
+    const newCharacter = {
+      id: NovelUtils.uuid(),
+      character_name: args.character_name,
+      personality: args.character_info.personality || '',
+      initial_state: args.character_info.initial_state || '',
+      final_state: args.character_info.final_state || '',
+      relationships: args.character_info.relationships || [],
+      key_changes: args.character_info.key_changes || [],
+      conflicts: args.character_info.conflicts || [],
+      background: args.character_info.background || '',
+      appearance: args.character_info.appearance || '',
+      role_in_story: args.character_info.role_in_story || '配角',
+      enabled: true,
+      created_at: Date.now()
+    };
+
+    NovelUtils.log(`✨ 创建新角色：${newCharacter.character_name}`, 'success');
+
+    // 添加到项目角色列表
+    await addCharacterToProject(newCharacter, project);
+
+    return {
+      type: 'character_created',
+      character: newCharacter,
+      message: `成功创建角色「${newCharacter.character_name}」`,
+      reason: args.reason || '剧情需要'
+    };
+  }
+
+  /**
+   * 更新现有角色
+   */
+  async function updateExistingCharacter(args, project) {
+    // 查找现有角色
+    const existingChar = findCharacterByName(args.character_name, project);
+    
+    if (!existingChar) {
+      throw new Error(`未找到角色：${args.character_name}`);
+    }
+
+    // 更新角色信息
+    const updatedCharacter = {
+      ...existingChar,
+      personality: args.character_info.personality || existingChar.personality,
+      initial_state: args.character_info.initial_state || existingChar.initial_state,
+      final_state: args.character_info.final_state || existingChar.final_state,
+      relationships: args.character_info.relationships?.length 
+        ? args.character_info.relationships 
+        : existingChar.relationships,
+      key_changes: args.character_info.key_changes?.length 
+        ? args.character_info.key_changes 
+        : existingChar.key_changes,
+      conflicts: args.character_info.conflicts?.length 
+        ? args.character_info.conflicts 
+        : existingChar.conflicts,
+      background: args.character_info.background || existingChar.background,
+      appearance: args.character_info.appearance || existingChar.appearance,
+      role_in_story: args.character_info.role_in_story || existingChar.role_in_story,
+      updated_at: Date.now()
+    };
+
+    NovelUtils.log(`🔄 更新角色：${updatedCharacter.character_name}`, 'info');
+
+    // 保存到项目
+    await updateCharacterInProject(updatedCharacter, project);
+
+    return {
+      type: 'character_updated',
+      character: updatedCharacter,
+      message: `成功更新角色「${updatedCharacter.character_name}」`,
+      reason: args.reason || '角色发展需要'
+    };
+  }
+
+  /**
+   * 将角色添加到项目
+   */
+  async function addCharacterToProject(character, project) {
+    // 这里需要通过 UI 或存储模块来添加角色
+    // 由于是异步操作，我们返回一个 Promise
+    return new Promise((resolve) => {
+      // 触发一个自定义事件，让 UI 层处理
+      const event = new CustomEvent('novel-character-created', {
+        detail: { character, project }
+      });
+      window.dispatchEvent(event);
+      
+      // 立即 resolve，让流程继续
+      resolve(character);
+    });
+  }
+
+  /**
+   * 更新项目中的角色
+   */
+  async function updateCharacterInProject(character, project) {
+    return new Promise((resolve) => {
+      const event = new CustomEvent('novel-character-updated', {
+        detail: { character, project }
+      });
+      window.dispatchEvent(event);
+      
+      resolve(character);
+    });
+  }
+
+  /**
+   * 根据名称查找角色
+   */
+  function findCharacterByName(name, project) {
+    const allCharacters = NovelNav.getAllCharacters(project);
+    return allCharacters.find(char => 
+      (char.character_name === name) || (char.name === name)
+    );
   }
 
   return {

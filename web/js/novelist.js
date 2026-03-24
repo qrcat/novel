@@ -197,8 +197,11 @@ const NovelWriter = (function() {
   function generateWithRealTimeAgents(title, genre, outline, chapter, previousContent, settings, characters) {
     NovelUtils.log('开始实时协作写作...', 'phase');
     
+    // 获取当前项目对象（用于角色管理等操作）
+    const project = NovelNav.getCurrentProject();
+    
     // 构建系统提示词，包含工具调用能力
-    const systemPrompt = `你是一位专业的网络小说作家，擅长多角色协作的叙事写作。
+    const systemPrompt = `你是一位专业的网络小说作家（主 Agent），负责多角色协作的叙事写作。
 小说标题：${title}
 类型：${genre}
 世界观：${JSON.stringify(outline.world_building || {})}
@@ -207,17 +210,32 @@ const NovelWriter = (function() {
 
 你的任务是写出充满情感、生动有趣的正文。
 
-重要写作指南：
-1. 每次回复请写 300-500 字的连贯内容
-2. 当你需要描写某个角色的动作、语言、心理活动时，请使用工具调用来获取该角色的真实反应
-3. 可用工具：
-   - get_character_action: 获取角色的动作和行为
-   - get_character_dialogue: 获取角色的对话
-   - get_character_emotion: 获取角色的情绪变化
-   - complete_chapter: 当你认为本章已经完整时调用此工具结束章节
+【核心职责】
+1. **阅读章节信息**：理解本章的情节大纲和出场角色
+2. **分配角色 Agent**：根据情节需要，为关键角色分配任务
+3. **推进剧情**：主动推动故事发展，不要被动等待
+4. **编写剧情**：将角色的行为、对话整合成流畅的小说正文
 
-4. 情节推进要自然，不要急于结束
-5. 充分运用角色 Agent 的反馈来丰富细节
+【工作流程】
+1. **普通叙述** → 直接创作正文（400-600 字）
+2. **遇到角色动作/对话** → 调用对应角色 Agent → 获取反馈 → **你负责编写成小说正文**
+3. **动态管理角色** → 可根据剧情需要创建/修改角色设定（此操作不加入正文）
+4. **循环推进** → 持续写作直到情节完整 → 调用 complete_chapter
+
+【重要规则】
+1. **每次回复必须写 400-600 字正文** - 这是最重要的要求！
+2. **禁止只调用工具不写作** - 即使调用了工具，也必须同时输出正文内容
+3. **正确格式** - 先写正文 → 在需要的地方插入工具调用 → 继续写正文
+4. **工具结果处理** - 工具返回的是原始数据，你需要将其改写成流畅的小说语言并加入正文
+5. **角色管理独立** - manage_character 的结果不需要写入正文，仅用于更新角色设定
+6. **主动推进** - 你是主导者，不是被动的记录员
+
+【可用工具】
+- get_character_action: 获取角色的动作和行为（重要动作时使用）
+- get_character_dialogue: 获取角色的对话（重要对话时使用）
+- get_character_emotion: 获取角色的情绪变化（情绪转折点使用）
+- manage_character: 创建或修改角色设定（根据你的判断自主决定）
+- complete_chapter: 当你认为本章已经完整时调用
 
 字数要求：整章 800-1500 字`;
 
@@ -246,13 +264,15 @@ ${chapter.expanded_paragraph || chapter.one_sentence}
 ${previousSummary}
 
 请开始写作这一章的正文内容。
-要求：
+
+【写作要求】
 1. 准确呈现每个角色的性格和行为
 2. 场景描写生动，对话自然
 3. 情节推进合理，有吸引力
-4. 在描写角色时，使用工具调用获取真实的角色反应
-5. 写满 300-500 字后，如果情节还未完整，继续写下一段
-6. 当情节完整时，调用 complete_chapter 工具结束本章`;
+4. **重要**：每次回复必须输出 400-600 字的正文内容（即使调用了工具也要同时写正文）
+5. 遇到角色动作、对话时，调用对应 Agent 获取反馈，然后由你编写成小说语言
+6. 可根据剧情需要动态创建或修改角色设定
+7. 当情节完整时，调用 complete_chapter 结束本章`;
 
     // 获取角色工具定义
     const tools = CharacterTools.getCharacterTools();
@@ -264,6 +284,7 @@ ${previousSummary}
     let currentLoop = 0;
     let chapterContent = '';
     let isChapterComplete = false;
+    
     let conversationHistory = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
@@ -299,17 +320,35 @@ ${previousSummary}
         const message = response.choices[0].message;
         const assistantContent = message.content || '';
         
-        // 关键修复：无论是否有工具调用，都要累积文本内容
-        if (assistantContent.trim().length > 0) {
-          chapterContent += (chapterContent ? '\n\n' : '') + assistantContent.trim();
-          const wordCount = Math.round(chapterContent.length / 3);
-          NovelUtils.log(`已累积 ${wordCount} 字`, 'info');
+        // 关键修复：只有在没有工具调用时，才累积原始内容
+        // 如果有工具调用，等待写作 Agent 处理后的纯净内容
+        if (assistantContent.trim().length > 0 && (!message.tool_calls || message.tool_calls.length === 0)) {
+          // 检查是否与已有内容重复（简单的前缀匹配）
+          const trimmedContent = assistantContent.trim();
+          const lastChunk = chapterContent.slice(-300); // 取最后 300 字对比
           
-          // 实时显示进度到输出框
-          updateGenerationProgress(currentLoop, MAX_LOOPS, wordCount, assistantContent);
+          // 如果新内容与末尾内容高度重复（超过 50% 相似），跳过累积
+          let shouldAdd = true;
+          if (lastChunk.length > 50 && trimmedContent.length > 50) {
+            const commonLength = findCommonPrefix(lastChunk, trimmedContent);
+            const similarity = commonLength / Math.min(lastChunk.length, trimmedContent.length);
+            if (similarity > 0.5) {
+              NovelUtils.log(`检测到重复内容（相似度${(similarity * 100).toFixed(1)}%），跳过累积`, 'warn');
+              shouldAdd = false;
+            }
+          }
+          
+          if (shouldAdd) {
+            chapterContent += (chapterContent ? '\n\n' : '') + trimmedContent;
+            const wordCount = Math.round(chapterContent.length / 3);
+            NovelUtils.log(`已累积 ${wordCount} 字`, 'info');
+            
+            // 实时显示进度到输出框
+            updateGenerationProgress(currentLoop, MAX_LOOPS, wordCount, trimmedContent);
+          }
         }
         
-        // 添加到对话历史
+        // 添加到对话历史（始终添加，保持对话连续性）
         conversationHistory.push({
           role: 'assistant',
           content: assistantContent
@@ -319,8 +358,8 @@ ${previousSummary}
         if (message.tool_calls && message.tool_calls.length > 0) {
           NovelUtils.log(`检测到 ${message.tool_calls.length} 次工具调用`, 'tool');
           
-          // 处理工具调用并等待结果
-          return handleWritingToolCalls(message, characters, settings)
+          // 【简化】处理工具调用并等待结果（传入 project 参数）
+          return handleWritingToolCalls(message, characters, settings, project)
             .then(toolResults => {
               // toolResults 现在是数组了
               NovelUtils.log(`收到 ${toolResults.length} 个工具调用结果`, 'info');
@@ -338,7 +377,20 @@ ${previousSummary}
                 return formatChapterText(chapter, chapterContent);
               }
               
-              // 将工具结果反馈给 AI
+              // 【简化】直接从工具结果中提取内容并累积，不使用写作 Agent
+              const extractedContent = extractSimpleToolResults(toolResults);
+              
+              // 累积到正文
+              if (extractedContent.trim().length > 0) {
+                chapterContent += (chapterContent ? '\n\n' : '') + extractedContent.trim();
+                const wordCount = Math.round(chapterContent.length / 3);
+                NovelUtils.log(`已累积 ${wordCount} 字`, 'info');
+                
+                // 实时显示进度到输出框
+                updateGenerationProgress(currentLoop, MAX_LOOPS, wordCount, extractedContent);
+              }
+
+              // 将工具结果反馈给主 AI（用于下一轮决策）
               toolResults.forEach(result => {
                 if (result.result) {
                   NovelUtils.log(`工具结果已添加：${result.name} → ${result.character}`, 'info');
@@ -359,6 +411,7 @@ ${previousSummary}
               // 继续下一轮写作
               return writeLoop();
             })
+
             .catch(err => {
               NovelUtils.log(`工具调用处理异常：${err.message}`, 'error');
               // 即使出错也继续
@@ -390,9 +443,10 @@ ${previousSummary}
    * @param {Object} message - LLM 返回的消息对象
    * @param {Array} characters - 角色列表
    * @param {Object} settings - API 设置
+   * @param {Object} project - 项目对象（新增参数）
    * @returns {Promise<Array>} 工具调用结果数组
    */
-  function handleWritingToolCalls(message, characters, settings) {
+  function handleWritingToolCalls(message, characters, settings, project) {
     const toolCalls = message.tool_calls;
     
     NovelUtils.log(`处理 ${toolCalls.length} 个工具调用...`, 'phase');
@@ -422,42 +476,60 @@ ${previousSummary}
                 toolCallId: toolCall.id,  // 必须保留 tool_call_id
                 name: functionName,
                 result: result,
-                character: charName
+                character: charName,
+                type: 'character_tool'
               }))
-              .catch(err => {
-                NovelUtils.log(`角色 ${charName} 查询失败：${err.message}`, 'error');
-                return {
-                  toolCallId: toolCall.id,
-                  name: functionName,
-                  error: err.message,
-                  character: charName
-                };
-              });
+              .catch(err => ({
+                toolCallId: toolCall.id,
+                name: functionName,
+                error: err.message,
+                character: charName,
+                type: 'character_tool_error'
+              }));
           } else {
-            NovelUtils.log(`未找到角色：${charName}`, 'error');
+            NovelUtils.log(`未找到角色：${charName}，跳过`, 'warn');
             return Promise.resolve({
               toolCallId: toolCall.id,
               name: functionName,
-              error: '角色不存在',
-              character: charName
+              error: `角色不存在：${charName}`,
+              character: charName,
+              type: 'character_not_found'
             });
           }
-          
+        
+        case 'manage_character':
+          // 【新增】处理角色管理工具
+          NovelUtils.log('检测到角色管理操作', 'tool');
+          return CharacterTools.handleManageCharacter(toolCall, project)
+            .then(result => ({
+              toolCallId: toolCall.id,
+              name: 'manage_character',
+              result: result,
+              type: 'manage_character_result'
+            }))
+            .catch(err => ({
+              toolCallId: toolCall.id,
+              name: 'manage_character',
+              error: err.message,
+              type: 'manage_character_error'
+            }));
+        
         case 'complete_chapter':
-          // 章节完成信号
-          NovelUtils.log('检测到章节完成信号', 'success');
+          // 章节完成信号，直接返回
           return Promise.resolve({
             toolCallId: toolCall.id,
-            type: 'complete_chapter',
-            name: functionName,
-            args: functionArgs
+            name: 'complete_chapter',
+            args: functionArgs,
+            type: 'complete_chapter'
           });
-          
+        
         default:
+          NovelUtils.log(`未知工具：${functionName}`, 'warn');
           return Promise.resolve({
             toolCallId: toolCall.id,
             name: functionName,
-            error: '未知工具'
+            error: '未知工具类型',
+            type: 'unknown_tool'
           });
       }
     });
@@ -475,29 +547,61 @@ ${previousSummary}
   }
 
   /**
-   * 实时显示生成进度到输出框
+   * 查找两个字符串的公共前缀长度
+   */
+  function findCommonPrefix(str1, str2) {
+    let length = 0;
+    const minLength = Math.min(str1.length, str2.length);
+    
+    for (let i = 0; i < minLength; i++) {
+      if (str1[i] === str2[i]) {
+        length++;
+      } else {
+        break;
+      }
+    }
+    
+    return length;
+  }
+
+  /**
+   * 实时显示生成进度并更新正文
    */
   function updateGenerationProgress(currentLoop, maxLoops, wordCount, newContent) {
     const outputBox = document.getElementById('output-box');
-    if (!outputBox) return;
+    if (outputBox) {
+      // 在输出框显示简化的进度日志
+      const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      const logText = `[${timestamp}] 第${currentLoop}/${maxLoops}轮 | 已生成 ${wordCount} 字\n`;
+      outputBox.textContent += logText;
+      outputBox.scrollTop = outputBox.scrollHeight;
+    }
 
-    const timestamp = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-    const progressInfo = `[${timestamp}] 第${currentLoop}/${maxLoops}轮 | 已生成 ${wordCount} 字`;
-    
-    // 截取最新内容的预览（最多 200 字）
-    const contentPreview = newContent.length > 600 
-      ? newContent.slice(0, 600) + '\n...' 
-      : newContent;
-    
-    // 构建进度信息
-    const progressText = `${progressInfo}\n新生成内容:\n${contentPreview}\n${'━'.repeat(60)}\n`;
-    
-    // 追加到输出框（保留之前的内容）
-    const existingContent = outputBox.textContent || '';
-    outputBox.textContent = existingContent + progressText + '\n';
-    
-    // 滚动到底部
-    outputBox.scrollTop = outputBox.scrollHeight;
+    // 关键：实时更新正文区域
+    const novelPanel = document.getElementById('novel-panel');
+    if (novelPanel) {
+      // 获取当前章节标题（如果有）
+      const chapterTitle = novelPanel.querySelector('.chapter-preview-title');
+      if (!chapterTitle) {
+        // 如果是第一轮，添加章节标题占位
+        novelPanel.innerHTML = '<div class="chapter-preview-title" style="font-size:1.2rem;color:var(--accent);margin-bottom:1rem;text-align:center">正在生成...</div>' + 
+                               '<div class="chapter-preview-content" style="line-height:1.8;font-size:.9rem"></div>';
+      }
+      
+      // 追加新生成的内容到正文
+      const contentDiv = novelPanel.querySelector('.chapter-preview-content');
+      if (contentDiv) {
+        // 如果不是第一段，先加空行
+        if (contentDiv.textContent.trim().length > 0) {
+          contentDiv.innerHTML += '<br/><br/>' + newContent.replace(/\n/g, '<br/>');
+        } else {
+          contentDiv.innerHTML = newContent.replace(/\n/g, '<br/>');
+        }
+        
+        // 滚动到最新内容
+        novelPanel.scrollTop = novelPanel.scrollHeight;
+      }
+    }
   }
 
   /**
@@ -725,6 +829,44 @@ ${previousSummary}
       const chapterText = `第${chapter.chapter_number}章 ${chapter.chapter_title}\n\n${content}`;
       return chapterText;
     });
+  }
+
+  /**
+   * 【简化】快速提取工具结果中的内容，不调用写作 Agent
+   * @param {Array} toolResults - 工具调用结果数组
+   * @returns {string} - 提取后的内容
+   */
+  function extractSimpleToolResults(toolResults) {
+    const contents = [];
+
+    toolResults.forEach(result => {
+      if (result.type === 'character_tool' && result.result) {
+        const charName = result.character || '未知角色';
+        const toolResult = result.result;
+        
+        // 提取动作描述
+        if (toolResult.action) {
+          let action = toolResult.action;
+          action = action.replace(/^\[.*?\]\s*/g, ''); // 移除 [主角] 前缀
+          action = action.replace(/做出了符合其性格的动作反应/g, '');
+          action = action.replace(/具体情况：/g, '');
+          action = action.replace(/[()（）]/g, '');
+          contents.push(`${charName}：${action.trim()}`);
+        }
+        
+        // 提取对话
+        if (toolResult.dialogue) {
+          contents.push(`${charName}说："${toolResult.dialogue}"`);
+        }
+        
+        // 提取情绪
+        if (toolResult.emotion) {
+          contents.push(`${charName}的情绪：${toolResult.emotion}`);
+        }
+      }
+    });
+
+    return contents.join('\n\n');
   }
 
   return {
