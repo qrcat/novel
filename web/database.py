@@ -200,6 +200,103 @@ def delete_project(project_id: str):
     return {"ok": True}
 
 
+# ── 路由：角色 CRUD ───────────────────────────────────────────────────────
+
+class CreateCharacterIn(BaseModel):
+    name: str
+    personality: str = ""
+    background: str = ""
+    role: str = ""          # 主角/配角/反派/工具人
+    appearance: str = ""     # 外貌特征
+
+
+@app.post("/api/project/{project_id}/character")
+def add_character(project_id: str, data: CreateCharacterIn):
+    session = get_session()
+    proj = session.query(ProjectModel).filter_by(id=project_id).first()
+    if not proj:
+        session.close()
+        raise HTTPException(404, "项目不存在")
+
+    chars = json.loads(proj.characters or "[]")
+    # 检查重名
+    if any(c.get("name") == data.name for c in chars):
+        session.close()
+        raise HTTPException(400, f"角色「{data.name}」已存在")
+
+    chars.append({
+        "name": data.name,
+        "personality": data.personality,
+        "background": data.background,
+        "role": data.role,
+        "appearance": data.appearance,
+    })
+    proj.characters = json.dumps(chars, ensure_ascii=False)
+    proj.updated_at = datetime.now()
+    session.commit()
+    session.close()
+    return {"ok": True, "character": data.model_dump()}
+
+
+@app.put("/api/project/{project_id}/character/{char_name}")
+def update_character(project_id: str, char_name: str, data: CreateCharacterIn):
+    session = get_session()
+    proj = session.query(ProjectModel).filter_by(id=project_id).first()
+    if not proj:
+        session.close()
+        raise HTTPException(404, "项目不存在")
+
+    chars = json.loads(proj.characters or "[]")
+    updated = False
+    for i, c in enumerate(chars):
+        if c.get("name") == char_name:
+            # 如果改了名字，先检查新名字是否冲突
+            if data.name != char_name and any(x.get("name") == data.name for x in chars):
+                session.close()
+                raise HTTPException(400, f"角色「{data.name}」已存在")
+            chars[i] = {
+                "name": data.name,
+                "personality": data.personality,
+                "background": data.background,
+                "role": data.role,
+                "appearance": data.appearance,
+            }
+            updated = True
+            break
+
+    if not updated:
+        session.close()
+        raise HTTPException(404, f"角色「{char_name}」不存在")
+
+    proj.characters = json.dumps(chars, ensure_ascii=False)
+    proj.updated_at = datetime.now()
+    session.commit()
+    session.close()
+    return {"ok": True, "character": data.model_dump()}
+
+
+@app.delete("/api/project/{project_id}/character/{char_name}")
+def delete_character(project_id: str, char_name: str):
+    session = get_session()
+    proj = session.query(ProjectModel).filter_by(id=project_id).first()
+    if not proj:
+        session.close()
+        raise HTTPException(404, "项目不存在")
+
+    chars = json.loads(proj.characters or "[]")
+    before = len(chars)
+    chars = [c for c in chars if c.get("name") != char_name]
+    if len(chars) == before:
+        session.close()
+        raise HTTPException(404, f"角色「{char_name}」不存在")
+
+    proj.characters = json.dumps(chars, ensure_ascii=False)
+    proj.updated_at = datetime.now()
+    session.commit()
+    session.close()
+    return {"ok": True}
+
+
 # ── 路由：生成 ────────────────────────────────────────────────────────────
 
 class GenerateOutlineIn(BaseModel):

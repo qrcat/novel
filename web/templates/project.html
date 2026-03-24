@@ -159,6 +159,27 @@ textarea { resize: vertical; min-height: 80px; }
 select { cursor: pointer; }
 
 /* 角色列表 */
+.char-tabs {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+.char-tab {
+  flex: 1;
+  padding: 0.4rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-family: 'DM Mono', monospace;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--surface);
+}
+.char-tab:hover { color: var(--text); }
+.char-tab.active { color: var(--accent); background: var(--surface2); }
+
 .char-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .char-card {
   background: var(--surface);
@@ -166,12 +187,82 @@ select { cursor: pointer; }
   border-radius: 8px;
   padding: 0.75rem;
   font-size: 0.85rem;
-  cursor: pointer;
   transition: all 0.15s;
+  position: relative;
 }
-.char-card:hover { border-color: var(--accent); background: var(--surface2); }
-.char-name { color: var(--accent); font-weight: 500; margin-bottom: 0.25rem; }
-.char-desc { color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+.char-card:hover { border-color: rgba(201,168,76,0.4); }
+.char-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+.char-name { color: var(--accent); font-weight: 500; }
+.char-role {
+  font-size: 0.65rem;
+  font-family: 'DM Mono', monospace;
+  background: var(--surface2);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.char-role.protagonist { color: var(--accent2); border-color: rgba(139,92,246,0.4); }
+.char-role.antagonist { color: var(--danger); border-color: rgba(224,92,92,0.3); }
+.char-role.supporting { color: var(--success); border-color: rgba(76,175,125,0.3); }
+.char-desc { color: var(--muted); font-size: 0.78rem; line-height: 1.6; }
+.char-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  justify-content: flex-end;
+}
+.char-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.25rem 0;
+}
+.char-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* 角色弹窗 */
+.char-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  display: none;
+}
+.char-modal-overlay.show { display: flex; }
+.char-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 440px;
+  max-width: 95vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  animation: slideUp 0.2s ease;
+}
+.char-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.char-modal-title { font-size: 1rem; color: var(--accent); }
+.char-badge {
+  font-size: 0.65rem;
+  font-family: 'DM Mono', monospace;
+  background: var(--accent);
+  color: #0c0b0f;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
 
 /* ── 中间主区 ── */
 .main-area {
@@ -508,9 +599,14 @@ input[type=range]:focus { outline: none; }
     <div>
       <div class="panel-title">角色列表</div>
       <div class="char-list" id="char-list">
-        <div class="info-block" style="text-align:center; color:var(--muted); font-size:0.85rem;">
-          生成大纲后显示
+        <div id="char-empty" class="info-block" style="text-align:center; color:var(--muted); font-size:0.85rem;">
+          暂无角色，点击下方按钮添加
         </div>
+      </div>
+      <div style="margin-top:0.75rem; display:flex; gap:0.5rem;">
+        <button class="btn btn-primary" onclick="openCharModal()" style="flex:1; font-size:0.78rem; padding:0.4rem 0.75rem;">
+          ＋ 添加角色
+        </button>
       </div>
     </div>
 
@@ -571,6 +667,49 @@ input[type=range]:focus { outline: none; }
 </div>
 
 <div id="toast" class="toast" style="display:none"></div>
+
+<!-- 角色弹窗 -->
+<div class="char-modal-overlay" id="char-modal-overlay" onclick="if(event.target===this)closeCharModal()">
+  <div class="char-modal">
+    <div class="char-modal-header">
+      <span class="char-modal-title" id="char-modal-title">添加角色</span>
+      <button class="icon-btn" onclick="closeCharModal()">✕</button>
+    </div>
+    <form id="char-form" onsubmit="submitCharForm(event)">
+      <input type="hidden" id="char-edit-name">
+      <div class="form-group">
+        <label class="form-label">姓名 *</label>
+        <input type="text" id="char-name" placeholder="例如：林晚棠" required maxlength="30">
+      </div>
+      <div class="form-group">
+        <label class="form-label">定位</label>
+        <select id="char-role">
+          <option value="">未设定</option>
+          <option value="protagonist">主角</option>
+          <option value="supporting">配角</option>
+          <option value="antagonist">反派</option>
+          <option value="tool">工具人</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">外貌特征</label>
+        <textarea id="char-appearance" rows="2" placeholder="描述身高、体型、发型、发色、标志性特征…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">性格特点</label>
+        <textarea id="char-personality" rows="3" placeholder="角色性格的核心特征，如：冷静理性、外冷内热、阴郁偏执…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">背景故事</label>
+        <textarea id="char-background" rows="3" placeholder="角色的过去经历、身份背景、与其他角色的关系…"></textarea>
+      </div>
+      <div class="char-form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeCharModal()">取消</button>
+        <button type="submit" class="btn btn-primary" id="char-submit-btn">添加角色</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -626,12 +765,136 @@ function applyProject() {
 
 function renderChars(chars) {
   const el = document.getElementById('char-list');
+  const emptyEl = document.getElementById('char-empty');
+  if (!chars || chars.length === 0) {
+    el.innerHTML = '';
+    el.appendChild(emptyEl);
+    emptyEl.style.display = '';
+    document.getElementById('info-chars').textContent = '0 人';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  const roleLabel = {protagonist:'主角',supporting:'配角',antagonist:'反派',tool:'工具人'};
   el.innerHTML = chars.map(c => `
-    <div class="char-card">
-      <div class="char-name">${esc(c.name)}</div>
-      <div class="char-desc">${esc(c.personality || '')}</div>
+    <div class="char-card" data-char-name="${escAttr(c.name)}">
+      <div class="char-card-header">
+        <span class="char-name">${esc(c.name)}</span>
+        <span class="char-role ${esc(c.role||'')}">${esc(roleLabel[c.role]||'未设定')}</span>
+      </div>
+      ${c.personality ? `<div class="char-desc">性格：${esc(c.personality)}</div>` : ''}
+      ${c.background ? `<div class="char-desc">背景：${esc(c.background)}</div>` : ''}
+      ${c.appearance ? `<div class="char-desc">外貌：${esc(c.appearance)}</div>` : ''}
+      <div class="char-actions">
+        <button class="icon-btn edit-char-btn" title="编辑">✎</button>
+        <button class="icon-btn danger del-char-btn" title="删除">✕</button>
+      </div>
     </div>`).join('');
+
+  // 绑定按钮事件（避免内联 onclick）
+  el.querySelectorAll('.edit-char-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.closest('.char-card').dataset.charName;
+      editChar(name);
+    });
+  });
+  el.querySelectorAll('.del-char-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.closest('.char-card').dataset.charName;
+      deleteChar(name);
+    });
+  });
   document.getElementById('info-chars').textContent = chars.length + ' 人';
+}
+
+// ── 角色弹窗 ──
+let editingCharName = null;
+
+function openCharModal(charData) {
+  const overlay = document.getElementById('char-modal-overlay');
+  const title = document.getElementById('char-modal-title');
+  const submitBtn = document.getElementById('char-submit-btn');
+
+  if (charData) {
+    // 编辑模式
+    title.textContent = '编辑角色';
+    submitBtn.textContent = '保存修改';
+    editingCharName = charData.name;
+    document.getElementById('char-edit-name').value = charData.name;
+    document.getElementById('char-name').value = charData.name;
+    document.getElementById('char-role').value = charData.role || '';
+    document.getElementById('char-appearance').value = charData.appearance || '';
+    document.getElementById('char-personality').value = charData.personality || '';
+    document.getElementById('char-background').value = charData.background || '';
+  } else {
+    // 新增模式
+    title.textContent = '添加角色';
+    submitBtn.textContent = '添加角色';
+    editingCharName = null;
+    document.getElementById('char-edit-name').value = '';
+    document.getElementById('char-name').value = '';
+    document.getElementById('char-role').value = '';
+    document.getElementById('char-appearance').value = '';
+    document.getElementById('char-personality').value = '';
+    document.getElementById('char-background').value = '';
+  }
+  overlay.classList.add('show');
+  setTimeout(() => document.getElementById('char-name').focus(), 50);
+}
+
+function closeCharModal() {
+  document.getElementById('char-modal-overlay').classList.remove('show');
+  editingCharName = null;
+}
+
+function editChar(name) {
+  const chars = project.characters || [];
+  const c = chars.find(x => x.name === name);
+  if (c) openCharModal(c);
+}
+
+async function submitCharForm(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('char-name').value.trim(),
+    role: document.getElementById('char-role').value,
+    appearance: document.getElementById('char-appearance').value.trim(),
+    personality: document.getElementById('char-personality').value.trim(),
+    background: document.getElementById('char-background').value.trim(),
+  };
+  const isEdit = !!editingCharName;
+  const url = isEdit
+    ? `${API}/project/${PID}/character/${encodeURIComponent(editingCharName)}`
+    : `${API}/project/${PID}/character`;
+
+  const res = await fetch(url, {
+    method: isEdit ? 'PUT' : 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({detail: '失败'}));
+    toast(err.detail || '操作失败', 'error');
+    return;
+  }
+  closeCharModal();
+  // 重新加载项目
+  await loadProject();
+  toast(isEdit ? '✓ 角色已更新' : '✓ 角色已添加');
+}
+
+async function deleteChar(name) {
+  if (!confirm(`确定删除角色「${name}」？`)) return;
+  const res = await fetch(`${API}/project/${PID}/character/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    toast(err.detail || '删除失败', 'error');
+    return;
+  }
+  await loadProject();
+  toast('✓ 角色已删除');
 }
 
 function renderOutline(o) {
@@ -887,6 +1150,9 @@ function fmtTime() {
 }
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 loadProject();
