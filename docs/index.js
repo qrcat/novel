@@ -205,10 +205,6 @@
 
   function saveProject() {
     if (!currentProject) return;
-    currentProject.api_key    = document.getElementById('cfg-api-key').value.trim();
-    currentProject.base_url   = document.getElementById('cfg-base-url').value.trim();
-    currentProject.model      = document.getElementById('cfg-model').value;
-    currentProject.temperature = parseFloat(document.getElementById('cfg-temp').value);
     currentProject.updated_at = new Date().toISOString();
     save();
     toast('已保存');
@@ -286,16 +282,6 @@
       document.getElementById('novel-panel').textContent = p.novel_text;
       document.getElementById('novel-tab-content').textContent = p.novel_text;
     }
-    if (p.api_key)    document.getElementById('cfg-api-key').value = p.api_key;
-    if (p.base_url)   document.getElementById('cfg-base-url').value = p.base_url;
-    if (p.model)       document.getElementById('cfg-model').value = p.model;
-    if (p.temperature) {
-      document.getElementById('cfg-temp').value = p.temperature;
-      document.getElementById('temp-label').textContent = p.temperature.toFixed(2);
-    }
-    document.getElementById('cfg-temp').addEventListener('input', function(e) {
-      document.getElementById('temp-label').textContent = parseFloat(e.target.value).toFixed(2);
-    });
   }
 
   function renderChars(chars) {
@@ -711,9 +697,8 @@
       var char = (currentProject.characters || []).find(function(c) { return (c.character_name || c.name) === charName; });
       if (!char) return Promise.resolve('错误：角色「' + charName + '」不存在');
 
-      var apiKey  = document.getElementById('cfg-api-key').value.trim();
-      var baseUrl = document.getElementById('cfg-base-url').value.trim();
-      var model   = document.getElementById('cfg-model').value;
+      var settings = getActiveSettings(currentProject);
+      var apiKey = settings.apiKey, baseUrl = settings.baseUrl, model = settings.model;
       var sys = '你是小说角色「' + charName + '」。\n' +
         '性格：' + (char.personality || char.initial_state || '') + '\n' +
         '背景：' + (char.background || '') + '\n' +
@@ -755,6 +740,7 @@
 
   // ── Settings ───────────────────────────────────────────────────
   function goSettings() {
+    var fromProject = !!currentProject;
     document.getElementById('page-home').classList.add('hidden');
     document.getElementById('page-project').classList.add('hidden');
     document.getElementById('page-settings').classList.remove('hidden');
@@ -766,7 +752,15 @@
     document.getElementById('header-actions').innerHTML =
       '<button class="btn btn-ghost" id="btn-back-from-settings">&#8592; 返回</button>';
     var btnBack = document.getElementById('btn-back-from-settings');
-    if (btnBack) btnBack.addEventListener('click', goHome);
+    if (btnBack) btnBack.addEventListener('click', function() {
+      if (fromProject) {
+        document.getElementById('page-project').classList.remove('hidden');
+        document.getElementById('page-settings').classList.add('hidden');
+        updateHeaderActions();
+      } else {
+        goHome();
+      }
+    });
 
     var s = getSettings();
     document.getElementById('s-api-key').value = s.api_key || '';
@@ -1059,8 +1053,8 @@
     if (btnExport) btnExport.addEventListener('click', exportProject);
     var btnDelete = document.getElementById('btn-delete');
     if (btnDelete) btnDelete.addEventListener('click', deleteCurrentProject);
-    var btnSaveProjectSidebar = document.getElementById('btn-save-project');
-    if (btnSaveProjectSidebar) btnSaveProjectSidebar.addEventListener('click', saveProject);
+    var btnOpenSettings = document.getElementById('btn-open-settings');
+    if (btnOpenSettings) btnOpenSettings.addEventListener('click', goSettings);
 
     // Project edit
     var btnEditProject = document.getElementById('btn-edit-project');
