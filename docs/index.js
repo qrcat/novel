@@ -1076,7 +1076,15 @@
 
     // Settings page controls
     var btnSaveSettings = document.getElementById('btn-save-settings');
-    if (btnSaveSettings) btnSaveSettings.addEventListener('click', saveGlobalSettings);
+    console.log('[Debug] btn-save-settings element:', btnSaveSettings);
+    if (btnSaveSettings) {
+      btnSaveSettings.addEventListener('click', function() {
+        console.log('[Debug] Save button clicked');
+        saveGlobalSettings();
+      });
+    } else {
+      console.error('[Debug] btn-save-settings NOT FOUND');
+    }
     var btnResetSettings = document.getElementById('btn-reset-settings');
     if (btnResetSettings) btnResetSettings.addEventListener('click', resetGlobalSettings);
     var btnTestConn = document.getElementById('btn-test-conn');
