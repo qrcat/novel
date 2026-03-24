@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novel Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0b0f;--surface:#16141a;--surface2:#1e1b24;--border:#2a2733;
+  --text:#e8e4df;--muted:#7a7485;--accent:#c9a84c;--accent2:#8b5cf6;
+  --danger:#e05c5c;--success:#4caf7d;--glow:rgba(201,168,76,.15);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Serif SC',serif;
+  background-image:radial-gradient(ellipse at 15% 0%,rgba(201,168,76,.06) 0%,transparent 50%),radial-gradient(ellipse at 85% 100%,rgba(139,92,246,.05) 0%,transparent 50%);}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.btn{padding:.45rem 1.1rem;border-radius:6px;font-family:inherit;font-size:.85rem;cursor:pointer;border:1px solid transparent;transition:all .2s;font-weight:400}
+.btn-primary{background:var(--accent);color:#0c0b0f;border-color:var(--accent)}
+.btn-primary:hover{background:#d4b55a;box-shadow:0 0 18px rgba(201,168,76,.3)}
+.btn-primary:disabled,.btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--muted);border-color:var(--border)}
+.btn-ghost:hover{border-color:var(--muted);color:var(--text)}
+.btn-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.icon-btn{background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:.9rem;padding:.2rem .4rem;border-radius:4px;transition:all .15s}
+.icon-btn:hover{color:var(--text);background:var(--surface2)}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:.8rem;padding:.5rem .7rem;width:100%;transition:border-color .2s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:80px}
+select{cursor:pointer}
+.header{display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:60px;border-bottom:1px solid var(--border);background:rgba(22,20,26,.9);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:.5rem;cursor:pointer;user-select:none}
+.logo-mark{color:var(--accent);font-size:1.4rem}
+.logo-text{font-size:1.1rem;font-weight:300;letter-spacing:.05em}
+.header-actions{display:flex;gap:.75rem;align-items:center}
+.toolbar-label{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;margin-right:auto}
+.main{padding:2rem;max-width:1200px;margin:0 auto}
+.section-header{display:flex;align-items:baseline;gap:1rem;margin-bottom:1.5rem}
+.section-title{font-size:1.4rem;font-weight:300;letter-spacing:.05em}
+.count{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.25rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.card:hover{border-color:rgba(201,168,76,.4);background:var(--surface2);transform:translateY(-2px)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .2s}
+.card:hover::before{opacity:1}
+.card-actions{position:absolute;top:.75rem;right:.75rem;opacity:0;transition:opacity .15s;display:flex;gap:.25rem}
+.card:hover .card-actions{opacity:1}
+.card-genre{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:.4rem}
+.card-title{font-size:1.1rem;margin-bottom:.5rem;font-weight:400;padding-right:2rem}
+.card-prompt{font-size:.8rem;color:var(--muted);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-footer{display:flex;justify-content:space-between;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+.card-meta{font-size:.72rem;color:var(--muted);font-family:'DM Mono',monospace}
+.empty-state{text-align:center;padding:5rem 2rem;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1rem}
+.empty-icon{font-size:3rem;opacity:.5}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:200;animation:fadeIn .2s ease}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(560px,95vw);max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);font-size:1rem;font-weight:400}
+.close-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;transition:color .15s}
+.close-btn:hover{color:var(--text)}
+.modal-form{padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.form-group{display:flex;flex-direction:column;gap:.25rem}
+.form-label{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace}
+.form-actions{display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border)}
+.layout{display:grid;grid-template-columns:300px 1fr 300px;height:calc(100vh - 60px);overflow:hidden}
+.sidebar{border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1.25rem}
+.main-area{display:flex;flex-direction:column;overflow:hidden}
+.right-panel{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel-title{font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;font-family:'DM Mono',monospace}
+.panel-tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(22,20,26,.8)}
+.tab{flex:1;padding:.6rem;text-align:center;font-size:.78rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:'DM Mono',monospace}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.panel-content{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:1rem}
+.info-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.85rem}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;font-size:.85rem;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-label{color:var(--muted)}
+.info-value{color:var(--text);text-align:right}
+.config-section{display:flex;flex-direction:column;gap:.6rem}
+.control-row{display:flex;gap:.5rem;align-items:center}
+.slider-label{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap}
+input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;border:none;padding:0;accent-color:var(--accent)}
+.char-list{display:flex;flex-direction:column;gap:.4rem}
+.char-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.65rem;font-size:.85rem;transition:border-color .15s}
+.char-card:hover{border-color:var(--accent)}
+.char-name{color:var(--accent);font-weight:500;margin-bottom:.2rem;font-size:.88rem}
+.char-desc{color:var(--muted);font-size:.75rem;line-height:1.5}
+.toolbar{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(22,20,26,.7)}
+.outline-scroll{flex:1;overflow-y:auto;padding:1.25rem 1.5rem}
+.outline-empty{color:var(--muted);text-align:center;padding:3rem;font-size:.9rem;line-height:2}
+.chapter-block{margin-bottom:1.25rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;transition:border-color .2s}
+.chapter-block:hover{border-color:rgba(201,168,76,.4)}
+.chapter-block.current{border-color:var(--accent);box-shadow:0 0 20px var(--glow)}
+.chapter-num{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);letter-spacing:.1em}
+.chapter-title{font-size:1.05rem;color:var(--accent);margin:.3rem 0 .4rem}
+.chapter-one-sentence{font-size:.82rem;color:var(--muted);font-style:italic;border-left:2px solid var(--border);padding-left:.75rem;margin:.4rem 0;line-height:1.6}
+.chapter-meta{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
+.chapter-meta span{background:var(--surface2);padding:.15rem .5rem;border-radius:4px;font-size:.75rem;font-family:'DM Mono',monospace;color:var(--muted)}
+.chapter-meta .cur{color:var(--accent)}
+.theme-block{background:linear-gradient(135deg,rgba(201,168,76,.08),rgba(139,92,246,.08));border:1px solid rgba(201,168,76,.2);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.theme-text{font-size:1rem;color:var(--accent)}
+.theme-purpose{font-size:.82rem;color:var(--muted);margin-top:.3rem}
+.arc-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;margin-bottom:.6rem}
+.arc-name{color:var(--accent2);font-size:.85rem;font-weight:500}
+.arc-arrow{font-size:.75rem;color:var(--muted);margin:.2rem 0}
+.world-rule{display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;font-size:.82rem}
+.world-rule::before{content:'◈';color:var(--accent);flex-shrink:0}
+.novel-text{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;font-size:.9rem;line-height:2;white-space:pre-wrap;word-break:break-word}
+.output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
+.output-box:empty::before{content:'等待生成…';color:var(--muted)}
+.log-entry{margin-bottom:.15rem}
+.log-phase{color:var(--accent2)}
+.log-error{color:var(--danger)}
+.log-success{color:var(--success)}
+.log-muted{color:var(--muted)}
+.log-tool{color:var(--accent);font-size:.7rem}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:.4rem;display:none}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;padding:.75rem 1.25rem;font-size:.85rem;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:999;animation:slideUp .2s ease;display:none}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+.toast.warn{border-color:#e0a84c;color:#e0a84c}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes slideUp{from{transform:translateY(12px);opacity:0}}
+.hidden{display:none!important}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar,.right-panel{display:none}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo" onclick="goHome()">
+    <span class="logo-mark">&#10022;</span>
+    <span class="logo-text">Novel Agents</span>
+  </div>
+  <div class="header-actions" id="header-actions">
+    <button class="btn btn-primary" onclick="showModal()">+ 新建小说</button>
+  </div>
+</div>
+
+<!-- 首页 -->
+<div class="main" id="page-home">
+  <div class="section-header">
+    <h1 class="section-title">项目库</h1>
+    <span class="count" id="project-count">0 部作品</span>
+  </div>
+  <div class="grid" id="project-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <div class="empty-icon">&#128218;</div>
+    <h3>还没有作品</h3>
+    <p>点击上方「新建小说」开始第一部作品</p>
+  </div>
+</div>
+
+<!-- 项目页 -->
+<div class="layout hidden" id="page-project">
+
+  <aside class="sidebar">
+    <div>
+      <div class="panel-title">小说信息</div>
+      <div class="info-block">
+        <div class="info-row"><span class="info-label">标题</span><span class="info-value" id="info-title">—</span></div>
+        <div class="info-row"><span class="info-label">类型</span><span class="info-value" id="info-genre">—</span></div>
+        <div class="info-row"><span class="info-label">章节</span><span class="info-value" id="info-chapter">—</span></div>
+        <div class="info-row"><span class="info-label">角色</span><span class="info-value" id="info-chars">—</span></div>
+        <div class="info-row"><span class="info-label">状态</span><span class="info-value" id="info-status">—</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">模型配置</div>
+      <div class="config-section">
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input type="password" id="cfg-api-key" placeholder="sk-… 或 DashScope Key">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base URL</label>
+          <input type="text" id="cfg-base-url" value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">模型</label>
+          <select id="cfg-model">
+            <option value="qwen-plus">通义千问 Plus</option>
+            <option value="qwen-max">通义千问 Max</option>
+            <option value="qwen2.5-72b-instruct">Qwen2.5 72B</option>
+            <option value="deepseek-chat">DeepSeek Chat</option>
+            <option value="gpt-4o">GPT-4o</option>
+            <option value="gpt-4o-mini">GPT-4o Mini</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Temperature</label>
+          <div class="control-row">
+            <input type="range" id="cfg-temp" min="0.1" max="1.5" step="0.05" value="0.8">
+            <span class="slider-label" id="temp-label">0.80</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">角色列表</div>
+      <div class="char-list" id="char-list">
+        <div class="info-block text-sm text-muted" style="text-align:center">生成大纲后显示</div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">数据操作</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-ghost" style="flex:1;font-size:.8rem" onclick="exportProject()">&#128228; 导出</button>
+        <button class="btn btn-danger" style="flex:1;font-size:.8rem" onclick="deleteCurrentProject()">&#128465; 删除</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="main-area">
+    <div class="toolbar">
+      <span class="toolbar-label" id="toolbar-status">&#128214; 大纲</span>
+      <button class="btn btn-primary" id="btn-outline" onclick="generateOutline()">&#128368; 生成大纲</button>
+      <button class="btn btn-ghost" id="btn-round" onclick="generateRound()" disabled>&#9998; 写一段</button>
+      <button class="btn btn-ghost" onclick="showTab('novel')">&#128196; 正文</button>
+    </div>
+    <div class="outline-scroll" id="outline-panel">
+      <div class="outline-empty" id="outline-empty">
+        <p>&#10024; 还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
+      </div>
+      <div id="outline-content" class="hidden"></div>
+    </div>
+    <div class="novel-text hidden" id="novel-panel"></div>
+  </section>
+
+  <aside class="right-panel">
+    <div class="panel-tabs">
+      <div class="tab active" id="tab-output" onclick="showTab('output')">&#128203; 输出</div>
+      <div class="tab" id="tab-novel" onclick="showTab('novel')">&#128214; 正文</div>
+      <div class="tab" id="tab-outline" onclick="showTab('outline')">&#128205; 大纲</div>
+    </div>
+    <div class="panel-content" id="panel-output">
+      <div style="display:flex;flex-direction:column;gap:.5rem">
+        <button class="btn btn-primary" id="btn-outline2" onclick="generateOutline()" style="width:100%">&#128368; 生成大纲</button>
+        <button class="btn btn-ghost" id="btn-round2" onclick="generateRound()" disabled style="width:100%">&#9998; 写一段</button>
+        <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div class="output-box" id="output-box"></div>
+    </div>
+    <div class="panel-content hidden" id="panel-novel">
+      <div id="novel-tab-content" style="overflow-y:auto;flex:1;padding:0;font-size:.85rem;white-space:pre-wrap"></div>
+    </div>
+    <div class="panel-content hidden" id="panel-outline">
+      <div id="outline-sidebar-content" style="font-size:.82rem;line-height:1.8"></div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- 模态框 -->
+<div class="modal-overlay hidden" id="create-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span>新建小说</span>
+      <button class="close-btn" onclick="closeModal()">&#10005;</button>
+    </div>
+    <form class="modal-form" onsubmit="createProject(event)">
+      <div class="form-group">
+        <label class="form-label">标题</label>
+        <input type="text" name="title" placeholder="例如：午夜书店" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">类型</label>
+        <select name="genre">
+          <option value="悬疑推理">悬疑推理</option>
+          <option value="都市言情">都市言情</option>
+          <option value="科幻">科幻</option>
+          <option value="奇幻">奇幻</option>
+          <option value="历史">历史</option>
+          <option value="恐怖">恐怖</option>
+          <option value="武侠">武侠</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">初始设定</label>
+        <textarea name="initial_prompt" rows="4" placeholder="描述小说的开局设定、人物关系、核心悬念等…"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">创建并打开</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════ 状态 ═══════════════════
+let projects = JSON.parse(localStorage.getItem('na_projects') || '[]');
+let currentProject = null;
+let generating = false;
+
+// ═══════════════════ 工具函数 ═══════════════════
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function uuid(){return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})}
+function fmtDate(iso){const d=new Date(iso||Date.now());return`${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`}
+function fmtTime(){const d=new Date();return`${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`}
+function save(){localStorage.setItem('na_projects',JSON.stringify(projects))}
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+
+// ═══════════════════ 路由 ═══════════════════
+function goHome(){currentProject=null;document.getElementById('page-home').classList.remove('hidden');document.getElementById('page-project').classList.add('hidden');document.getElementById('header-actions').innerHTML='<button class="btn btn-primary" onclick="showModal()">+ 新建小说</button>';renderHome()}
+function openProject(id){currentProject=projects.find(p=>p.id===id);if(!currentProject){goHome();return}document.getElementById('page-home').classList.add('hidden');document.getElementById('page-project').classList.remove('hidden');document.getElementById('header-actions').innerHTML=`<span class="toolbar-label">${esc(currentProject.title)}</span><button class="btn btn-ghost" onclick="saveProject()">&#128190; 保存</button>`;applyProject()}
+function renderHome(){document.getElementById('project-count').textContent=`${projects.length} 部作品`;const grid=document.getElementById('project-grid');const empty=document.getElementById('empty-state');if(!projects.length){grid.innerHTML='';empty.style.display='flex';return}empty.style.display='none';grid.innerHTML=projects.map(p=>`<div class="card" onclick="openProject('${p.id}')"><div class="card-actions" onclick="e=>e.stopPropagation()"><button class="icon-btn danger" onclick="deleteProject('${p.id}',event)">&#10005;</button></div><div class="card-genre">${esc(p.genre||'未分类')}</div><div class="card-title">${esc(p.title)}</div><div class="card-prompt">${esc(p.initial_prompt||'')}</div><div class="card-footer"><span class="card-meta">第 ${p.writing_chapter||1} 章</span><span class="card-meta">${fmtDate(p.updated_at)}</span></div></div>`).join('')}
+function showModal(){document.getElementById('create-modal').classList.remove('hidden')}function closeModal(){document.getElementById('create-modal').classList.add('hidden')}
+
+// ═══════════════════ 项目 CRUD ═══════════════════
+function createProject(e){e.preventDefault();const fd=new FormData(e.target);const proj={id:uuid(),title:fd.get('title'),genre:fd.get('genre'),initial_prompt:fd.get('initial_prompt'),outline:null,characters:[],novel_text:'',conv_history:[],writing_chapter:1,current_scene:'',api_key:'',base_url:'https://dashscope.aliyuncs.com/compatible-mode/v1',model:'qwen-plus',temperature:0.8,updated_at:new Date().toISOString()};projects.unshift(proj);save();closeModal();openProject(proj.id)}
+function deleteProject(id,e){if(e)e.stopPropagation();if(!confirm('确定删除？'))return;projects=projects.filter(p=>p.id!==id);save();renderHome()}
+function deleteCurrentProject(){if(!currentProject||!confirm('确定删除此项目？'))return;projects=projects.filter(p=>p.id!==currentProject.id);save();goHome()}
+function saveProject(){if(!currentProject)return;currentProject.api_key=document.getElementById('cfg-api-key').value.trim();currentProject.base_url=document.getElementById('cfg-base-url').value.trim();currentProject.model=document.getElementById('cfg-model').value;currentProject.temperature=parseFloat(document.getElementById('cfg-temp').value);currentProject.updated_at=new Date().toISOString();save();toast('已保存')}
+
+// ═══════════════════ 应用数据到页面 ═══════════════════
+function applyProject(){if(!currentProject)return;const p=currentProject;document.getElementById('info-title').textContent=p.title||'—';document.getElementById('info-genre').textContent=p.genre||'—';document.getElementById('info-chapter').textContent=`第 ${p.writing_chapter||1} 章`;document.getElementById('info-chars').textContent=(p.characters||[]).length+' 人';if(p.outline&&Object.keys(p.outline).length){document.getElementById('info-status').textContent='大纲就绪';document.getElementById('btn-round').disabled=false;document.getElementById('btn-round2').disabled=false;renderOutline(p.outline);document.getElementById('outline-empty').style.display='none';document.getElementById('outline-content').classList.remove('hidden')}else{document.getElementById('info-status').textContent='等待大纲';document.getElementById('btn-round').disabled=true;document.getElementById('btn-round2').disabled=true}if(p.characters&&p.characters.length)renderChars(p.characters);if(p.novel_text){document.getElementById('novel-panel').textContent=p.novel_text;document.getElementById('novel-tab-content').textContent=p.novel_text}if(p.api_key)document.getElementById('cfg-api-key').value=p.api_key;if(p.base_url)document.getElementById('cfg-base-url').value=p.base_url;if(p.model)document.getElementById('cfg-model').value=p.model;if(p.temperature){document.getElementById('cfg-temp').value=p.temperature;document.getElementById('temp-label').textContent=Number(p.temperature).toFixed(2)}document.getElementById('cfg-temp').oninput=e=>{document.getElementById('temp-label').textContent=parseFloat(e.target.value).toFixed(2)}}
+function renderChars(chars){const el=document.getElementById('char-list');el.innerHTML=chars.map(c=>`<div class="char-card"><div class="char-name">${esc(c.character_name||c.name||'')}</div><div class="char-desc">${esc(c.personality||c.initial_state||'')}</div></div>`).join('');document.getElementById('info-chars').textContent=chars.length+' 人'}
+
+function renderOutline(o){const main=document.getElementById('outline-content');const side=document.getElementById('outline-sidebar-content');let m='',s='';const t=o.theme||{};if(t&&t.theme){m+=`<div class="theme-block"><div class="panel-title" style="margin-bottom:.5rem">核心主旨</div><div class="theme-text">${esc(t.theme)}</div>${t.purpose?`<div class="theme-purpose">${esc(t.purpose)}</div>`:''}</div>`}if(o.plot_paragraph){m+=`<div class="info-block" style="margin-bottom:1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem"><div class="panel-title" style="margin-bottom:.5rem">段落剧情</div><p style="font-size:.88rem;line-height:1.8">${esc(o.plot_paragraph)}</p></div>`}const w=o.world_building||{};if(w.location){m+=`<div style="margin-bottom:1.25rem"><div class="panel-title" style="margin-bottom:.75rem">世界观</div><div class="info-block"><div class="info-row"><span class="info-label">时间</span><span class="info-value">${esc(w.time_period||'')}</span></div><div class="info-row"><span class="info-label">地点</span><span class="info-value">${esc(w.location||'')}</span></div>${w.atmosphere?`<div class="info-row"><span class="info-label">氛围</span><span class="info-value">${esc(w.atmosphere)}</span></div>`:''}${(w.rules_of_world||[]).map(r=>`<div class="world-rule">${esc(r)}</div>`).join('')}</div></div>`}const arcs=o.character_arcs||[];if(arcs.length){m+=`<div class="panel-title" style="margin-bottom:.75rem">角色弧线</div>`;arcs.forEach(a=>{m+=`<div class="arc-block"><div class="arc-name">${esc(a.character_name||'')}</div><div class="arc-arrow">${esc(a.initial_state||'')} &#8594; ${esc(a.final_state||'')}</div>${(a.key_changes||[]).map(c=>`<div class="arc-arrow" style="color:var(--muted)">&#8226; ${esc(c)}</div>`).join('')}</div>`});s+=arcs.map(a=>`<div style="margin-bottom:.75rem"><strong style="color:var(--accent2)">${esc(a.character_name||'')}</strong><br><span style="color:var(--muted)">${esc(a.initial_state||'')} &#8594; ${esc(a.final_state||'')}</span></div>`).join('')}const chapters=o.chapters||[];const cur=currentProject.writing_chapter||1;if(chapters.length){m+=`<div class="panel-title" style="margin-bottom:.75rem">章节规划</div>`;chapters.forEach(ch=>{const isCur=ch.chapter_number===cur;m+=`<div class="chapter-block${isCur?' current':''}"><div class="chapter-num">第 ${ch.chapter_number} 章</div><div class="chapter-title">${esc(ch.chapter_title||'')}</div>${ch.one_sentence?`<div class="chapter-one-sentence">${esc(ch.one_sentence)}</div>`:''}${ch.expanded_paragraph?`<p style="font-size:.8rem;color:var(--muted);margin:.4rem 0;line-height:1.6">${esc(ch.expanded_paragraph)}</p>`:''}<div class="chapter-meta">${(ch.characters_involved||[]).map(c=>`<span>${esc(c)}</span>`).join('')}${isCur?'<span class="cur">&#9668; 当前</span>':''}</div></div>`});s+=`<div class="panel-title" style="margin-bottom:.5rem">章节</div>${chapters.map(ch=>`<div style="padding:.3rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--accent)">${ch.chapter_number}.</span> ${esc(ch.chapter_title||'')}</div>`).join('')}`}main.innerHTML=m||'<div class="outline-empty"><p>大纲内容为空</p></div>';side.innerHTML=s||'<div style="color:var(--muted);font-size:.85rem">暂无大纲概要</div>'}
+
+// ═══════════════════ LLM 调用 ═══════════════════
+async function llmCall(messages,tools,model,apiKey,baseUrl,temperature,maxTokens,responseFormat){const body={model,messages:messages.map(m=>{const o={role:m.role,content:m.content};if(m.tool_calls)o.tool_calls=m.tool_calls;if(m.tool_call_id)o.tool_call_id=m.tool_call_id;return o}),temperature,max_tokens:maxTokens||1000};if(responseFormat)body.response_format=responseFormat;if(tools&&tools.length)body.tools=tools;log(`LLM (${model})...`,'log-phase');const res=await fetch(`${baseUrl}/chat/completions`,{method:'POST',headers:{'Authorization':`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!res.ok){const err=await res.text();throw new Error(`API ${res.status}: ${err.slice(0,200)}`)}return res.json()}
+
+// ═══════════════════ 生成大纲 ═══════════════════
+const PHASES={
+  theme:{system:"你是小说创作顾问，负责提炼故事的核心。只输出 JSON。",user:(t,g,i)=>`小说标题：${t}
+类型：${g}
+初始设定：${i}
+
+提炼核心主题，返回JSON：{"theme":"","purpose":"","tone":"","target_audience":""}`},
+  plot_paragraph:{system:"你是小说家，用一段连贯文字概述整本小说。只输出 JSON。",user:(t,g,theme,tone,i)=>`标题：${t} 类型：${g} 主题：${theme} 基调：${tone}
+设定：${i}
+
+用一段（约200-400字）概述剧情，返回JSON：{"plot_paragraph":""}`},
+  chapter_outlines:{system:"把一段剧情拆分为N个章节，每个只一句话描述。只输出 JSON。",user:(t,g,theme,para)=>`标题：${t} 类型：${g} 主题：${theme}
+剧情：${para}
+
+拆分为章节（8-16章），返回JSON：{"total_chapters":0,"chapters":[{"chapter_number":1,"chapter_title":"","one_sentence":""}]}`},
+  chapter_detail:{system:"将章节一句话扩展为完整段落。只输出 JSON。",user:(t,g,theme,para,prev,ch,next)=>`小说：${t} 类型：${g} 主题：${theme}
+剧情：${para}
+前一章：${prev}
+本章：${ch}
+下一章：${next}
+
+扩写，返回JSON：{"chapter_number":0,"chapter_title":"","one_sentence":"","expanded_paragraph":"","scene_setting":"","key_events":[],"characters_involved":[],"plot_progression":""}`},
+  character_arcs:{system:"根据故事为所有角色设计发展弧线。只输出 JSON。",user:(t,g,theme,para,chars)=>`小说：${t} 类型：${g} 主题：${theme}
+剧情：${para}
+角色：${chars}
+
+角色弧线，返回JSON：{"character_arcs":[{"character_name":"","initial_state":"","final_state":"","key_changes":[],"conflicts":[],"personality":"","background":""}]}`},
+  world_building:{system:"根据故事主题设计世界观。只输出 JSON。",user:(t,g,theme,para)=>`小说：${t} 类型：${g} 主题：${theme}
+剧情：${para}
+
+世界观，返回JSON：{"time_period":"","location":"","social_context":"","rules_of_world":[],"atmosphere":"","key_locations":[]}`}
+};
+
+async function generateOutline(){if(generating)return;const apiKey=document.getElementById('cfg-api-key').value.trim();const baseUrl=document.getElementById('cfg-base-url').value.trim();const model=document.getElementById('cfg-model').value;const temp=parseFloat(document.getElementById('cfg-temp').value);if(!apiKey){toast('请先填入 API Key','error');return}if(!currentProject.initial_prompt){toast('请先填写初始设定','error');return}currentProject.api_key=apiKey;currentProject.base_url=baseUrl;currentProject.model=model;currentProject.temperature=temp;save();generating=true;setBtns(true);clearOutput();log('开始生成大纲…','phase');setProgress(10);try{const{title,genre,initial_prompt}=currentProject;const rf={type:'json_object'};setProgress(15);log('阶段1/6 — 主旨…','phase');let r=await llmCall([{role:'system',content:PHASES.theme.system},{role:'user',content:PHASES.theme.user(title,genre,initial_prompt)}],null,model,apiKey,baseUrl,0.7,800,rf);const themeData=JSON.parse(r.choices[0].message.content);log(`主旨：${themeData.theme||''}...`,'success');setProgress(25);log('阶段2/6 — 段落剧情…','phase');r=await llmCall([{role:'system',content:PHASES.plot_paragraph.system},{role:'user',content:PHASES.plot_paragraph.user(title,genre,themeData.theme||'',themeData.tone||'',initial_prompt)}],null,model,apiKey,baseUrl,0.7,1200,rf);const plotData=JSON.parse(r.choices[0].message.content);log('段落剧情完成','success');setProgress(35);log('阶段3/6 — 章节大纲…','phase');r=await llmCall([{role:'system',content:PHASES.chapter_outlines.system},{role:'user',content:PHASES.chapter_outlines.user(title,genre,themeData.theme||'',plotData.plot_paragraph||'')}],null,model,apiKey,baseUrl,0.7,1500,rf);const outlineData=JSON.parse(r.choices[0].message.content);const chapters=outlineData.chapters||[];log(`章节大纲（${chapters.length}章）`,'success');setProgress(40);const expanded=[];for(let i=0;i<chapters.length;i++){const ch=chapters[i];const prev=i>0?`第${chapters[i-1].chapter_number}章「${chapters[i-1].chapter_title}」`:'无';const next=i<chapters.length-1?`第${chapters[i+1].chapter_number}章「${chapters[i+1].chapter_title}」`:'无';setProgress(40+Math.round(i/chapters.length*20));log(`第${i+1}/${chapters.length}章「${ch.chapter_title}」…`,'phase');r=await llmCall([{role:'system',content:PHASES.chapter_detail.system},{role:'user',content:PHASES.chapter_detail.user(title,genre,themeData.theme||'',plotData.plot_paragraph||'',prev,ch.one_sentence||ch.chapter_title,next)}],null,model,apiKey,baseUrl,0.7,1200,rf);try{expanded.push(JSON.parse(r.choices[0].message.content))}catch{}}log('章节扩写完成','success');setProgress(65);log('阶段5/6 — 角色弧线…','phase');const charList=chapters.flatMap(ch=>ch.characters_involved||[]);const uniqueChars=[...new Set(charList)];r=await llmCall([{role:'system',content:PHASES.character_arcs.system},{role:'user',content:PHASES.character_arcs.user(title,genre,themeData.theme||'',plotData.plot_paragraph||'',uniqueChars.join('；')||'（无预设角色）')}],null,model,apiKey,baseUrl,0.7,2000,rf);let arcsData=[];try{arcsData=JSON.parse(r.choices[0].message.content).character_arcs||[]}catch{}log(`角色弧线（${arcsData.length}条）`,'success');setProgress(80);log('阶段6/6 — 世界观…','phase');r=await llmCall([{role:'system',content:PHASES.world_building.system},{role:'user',content:PHASES.world_building.user(title,genre,themeData.theme||'',plotData.plot_paragraph||'')}],null,model,apiKey,baseUrl,0.7,1500,rf);let worldData={};try{worldData=JSON.parse(r.choices[0].message.content)}catch{}log('世界观完成','success');setProgress(90);const outline={theme:themeData,plot_paragraph:plotData.plot_paragraph||'',structure:{total_chapters:chapters.length,main_plot:plotData.plot_paragraph||''},character_arcs:arcsData,world_building:worldData,chapters:expanded};currentProject.outline=outline;currentProject.characters=arcsData;currentProject.writing_chapter=1;currentProject.updated_at=new Date().toISOString();save();setProgress(100);log('大纲生成完成！','success');applyProject();showTab('outline');toast('大纲生成完成！')}catch(e){log('错误: '+e.message,'error');toast(e.message,'error')}finally{generating=false;setBtns(false);setTimeout(()=>{document.getElementById('progress-bar').style.display='none'},1500)}}
+
+// ═══════════════════ 写作 ═══════════════════
+const WRITER_SYSTEM=`你是小说主写作者，负责推动故事进程。写作风格：生动、细腻、富有画面感。
+
+可用工具：
+1. get_character_dialogue - 让角色发言
+2. set_scene - 设置新场景
+3. add_plot_twist - 添加剧情转折
+4. end_chapter - 结束章节
+
+规则：先描述场景（50-100字），然后调用工具让角色发言，不能自己写角色对话。`;
+
+function buildTools(){const charNames=(currentProject?.characters||[]).map(c=>c.character_name||c.name);return[{type:'function',function:{name:'get_character_dialogue',description:'让角色发言，可用角色：'+(charNames.length?charNames.join('、'):'（无）'),parameters:{type:'object',properties:{character_name:{type:'string',description:'角色名'},prompt:{type:'string',description:'给角色的提示'}},required:['character_name']}}},{type:'function',function:{name:'set_scene',description:'设置新场景',parameters:{type:'object',properties:{scene_description:{type:'string',description:'场景描述'}},required:['scene_description']}}},{type:'function',function:{name:'add_plot_twist',description:'添加剧情转折',parameters:{type:'object',properties:{description:{type:'string',description:'转折描述'}},required:['description']}}},{type:'function',function:{name:'end_chapter',description:'结束章节',parameters:{type:'object',properties:{chapter_summary:{type:'string',description:'章节总结'}}}}}]}
+
+async function generateRound(){if(generating)return;if(!currentProject.outline){toast('请先生成大纲','error');return}const apiKey=document.getElementById('cfg-api-key').value.trim();const baseUrl=document.getElementById('cfg-base-url').value.trim();const model=document.getElementById('cfg-model').value;if(!apiKey){toast('请先填入 API Key','error');return}currentProject.api_key=apiKey;currentProject.base_url=baseUrl;currentProject.model=model;save();generating=true;setBtns(true);showTab('output');log(`开始写作第 ${currentProject.writing_chapter} 章…`,'phase');setProgress(10);try{const o=currentProject.outline;const chapters=o.chapters||[];const pos=currentProject.writing_chapter||1;const ch=chapters[pos-1]||{};const recentHistory=(currentProject.conv_history||[]).slice(-5);const context=`小说标题：${currentProject.title}
+类型：${currentProject.genre}
+当前场景：${currentProject.current_scene||''}
+
+当前写作进度：第 ${pos} 章
+章节信息：
+- 标题：${ch.chapter_title||''}
+- 场景设定：${ch.scene_setting||''}
+- 关键事件：${(ch.key_events||[]).join('；')}
+- 涉及角色：${(ch.characters_involved||[]).join('、')}
+
+初始设定：${currentProject.initial_prompt||''}
+
+最近对话：
+${recentHistory.map(i=>i.type==='dialogue_raw'?i.content:'['+i.content+']').join('
+')}`;const tools=buildTools();const messages=[{role:'system',content:WRITER_SYSTEM},{role:'user',content:context}];let loop=0,maxLoops=20,narration='';const REWRITE_HINT='上方是工具执行结果（含角色台词）。请将台词改写整合进叙述，输出最终正文。禁止调用工具。';while(loop<maxLoops){loop++;setProgress(Math.round(10+loop/maxLoops*80));const resp=await llmCall(messages,tools,model,apiKey,baseUrl,0.8,800,null);narration=(resp.choices[0].message.content||'').trim();const toolCalls=resp.choices[0].message.tool_calls||[];if(!toolCalls||!toolCalls.length){currentProject.novel_text=(currentProject.novel_text||'')+`
+══════════════════
+${narration}
+══════════════════
+`;currentProject.updated_at=new Date().toISOString();save();log(`写作完成（${loop}轮）`,'success');applyProject();showTab('novel');setProgress(100);toast('一段写作完成！');generating=false;setBtns(false);setTimeout(()=>{document.getElementById('progress-bar').style.display='none'},1500);return}messages.push({role:'assistant',content:narration||null,tool_calls:toolCalls.map(tc=>({id:tc.id,type:'function',function:{name:tc.function.name,arguments:tc.function.arguments}}))});log(`第${loop}轮: ${toolCalls.map(tc=>tc.function.name).join(', ')}`,'phase');for(const tc of toolCalls){const args=JSON.parse(tc.function.arguments||'{}');const toolResult=await executeTool(tc.function.name,args,currentProject);messages.push({role:'tool',tool_call_id:tc.id,content:toolResult});log(`  [${tc.function.name}] ${toolResult.slice(0,60)}`,toolResult.startsWith('错误')?'error':'tool')}messages.push({role:'user',content:REWRITE_HINT})}currentProject.novel_text=(currentProject.novel_text||'')+`
+══════════════════
+${narration}
+══════════════════
+`;currentProject.updated_at=new Date().toISOString();save();log(`达到上限（${maxLoops}轮）`,'warn');applyProject();toast('达到最大轮次','warn')}catch(e){log('错误: '+e.message,'error');toast(e.message,'error')}finally{generating=false;setBtns(false);setTimeout(()=>{document.getElementById('progress-bar').style.display='none'},1500)}}
+
+// ═══════════════════ 工具执行 ═══════════════════
+async function executeTool(name,args,proj){if(name==='get_character_dialogue'){const charName=args.character_name;const char=(proj.characters||[]).find(c=>(c.character_name||c.name)===charName);if(!char)return`错误：角色「${charName}」不存在`;const apiKey=document.getElementById('cfg-api-key').value.trim();const baseUrl=document.getElementById('cfg-base-url').value.trim();const model=document.getElementById('cfg-model').value;const sys=`你是小说角色「${charName}」。
+性格：${char.personality||char.initial_state||''}
+背景：${char.background||''}
+初始状态：${char.initial_state||''}
+最终状态：${char.final_state||''}
+
+规则：保持角色性格，回复简短（50-150字），用第一人称"我"回应，不要说"我是AI"。
+当前场景：${proj.current_scene||'未知'}`;const resp=await llmCall([{role:'system',content:sys},{role:'user',content:args.prompt||'请回应'}],null,model,apiKey,baseUrl,0.8,300,null);const dialogue=(resp.choices[0].message.content||'').trim();if(!proj.conv_history)proj.conv_history=[];proj.conv_history.push({type:'dialogue_raw',character:charName,content:`${charName}：${dialogue}`});return`${charName}：${dialogue}`}else if(name==='set_scene'){proj.current_scene=args.scene_description;if(!proj.conv_history)proj.conv_history=[];proj.conv_history.push({type:'scene_change',content:`场景：${args.scene_description}`});return`场景已设置：${args.scene_description}`}else if(name==='add_plot_twist'){if(!proj.conv_history)proj.conv_history=[];proj.conv_history.push({type:'plot_twist',content:`剧情转折：${args.description}`});return`已添加剧情转折：${args.description}`}else if(name==='end_chapter'){if(!proj.conv_history)proj.conv_history=[];proj.conv_history.push({type:'chapter_end',content:`章节结束：${args.chapter_summary||''}`});proj.writing_chapter=(proj.writing_chapter||1)+1;return`章节已结束${args.chapter_summary?': '+args.chapter_summary:''}`}return`未知工具：${name}`}
+
+// ═══════════════════ UI 工具函数 ═══════════════════
+function setBtns(d){['btn-outline','btn-round','btn-outline2','btn-round2'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=d})}
+function clearOutput(){document.getElementById('output-box').textContent=''}
+function log(msg,kind=''){const el=document.getElementById('output-box');const div=document.createElement('div');div.className='log-entry'+(kind?' '+kind:'');div.textContent=`[${fmtTime()}] ${msg}`;el.appendChild(div);el.scrollTop=el.scrollHeight}
+function setProgress(pct){document.getElementById('progress-bar').style.display='block';document.getElementById('progress-fill').style.width=pct+'%'}
+function showTab(tab){['output','novel','outline'].forEach(t=>{document.getElementById(`panel-${t}`)?.classList.toggle('hidden',t!==tab);document.getElementById(`tab-${t}`)?.classList.toggle('active',t===tab)});const mainOutline=document.getElementById('outline-panel');const mainNovel=document.getElementById('novel-panel');if(tab==='outline'){mainOutline.style.display='';mainNovel.style.display='none'}else if(tab==='novel'){mainOutline.style.display='none';mainNovel.style.display=''}else{mainOutline.style.display='none';mainNovel.style.display='none'}}
+function exportProject(){if(!currentProject)return;const blob=new Blob([JSON.stringify(currentProject,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${currentProject.title||'novel'}.json`;a.click()}
+
+// ═══════════════════ 启动 ═══════════════════
+goHome();
+</script>
+</body>
+</html>

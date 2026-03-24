@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Novel Agents — 首页{% endblock %}
+{% block head %}
+<style>
+:root {
+  --bg: #0c0b0f;
+  --surface: #16141a;
+  --border: #2a2733;
+  --text: #e8e4df;
+  --muted: #7a7485;
+  --accent: #c9a84c;
+  --accent2: #8b5cf6;
+  --danger: #e05c5c;
+  --card-hover: #1e1b24;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Serif SC', serif;
+  min-height: 100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, rgba(201,168,76,0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(139,92,246,0.05) 0%, transparent 50%);
+}
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="page">
+
+  <!-- 顶栏 -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-mark">✦</span>
+      <span class="logo-text">Novel Agents</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="showCreateModal()">＋ 新建小说</button>
+    </div>
+  </header>
+
+  <!-- 项目列表 -->
+  <main class="main">
+    <div class="section-header">
+      <h2 class="section-title">项目库</h2>
+      <span class="count" id="project-count">0 部作品</span>
+    </div>
+
+    <div class="grid" id="project-grid">
+      <div class="loading-placeholder">
+        <div class="spinner"></div>
+        <p>加载中…</p>
+      </div>
+    </div>
+
+    <div class="empty-state" id="empty-state" style="display:none">
+      <div class="empty-icon">📖</div>
+      <h3>还没有作品</h3>
+      <p>点击上方「新建小说」开始你的第一部作品</p>
+    </div>
+  </main>
+
+</div>
+
+<!-- 新建弹窗 -->
+<div class="modal-overlay" id="create-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>新建小说</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <form class="modal-form" onsubmit="createProject(event)">
+      <div class="form-group">
+        <label>标题</label>
+        <input type="text" name="title" placeholder="例如：午夜书店" required>
+      </div>
+      <div class="form-group">
+        <label>类型</label>
+        <select name="genre">
+          <option value="悬疑推理">悬疑推理</option>
+          <option value="都市言情">都市言情</option>
+          <option value="科幻">科幻</option>
+          <option value="奇幻">奇幻</option>
+          <option value="历史">历史</option>
+          <option value="恐怖">恐怖</option>
+          <option value="武侠">武侠</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>初始设定</label>
+        <textarea name="initial_prompt" rows="4"
+          placeholder="描述小说的开局设定、人物关系、核心悬念等…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>模型</label>
+        <select name="model">
+          <option value="qwen-plus">通义千问 Plus</option>
+          <option value="qwen-max">通义千问 Max</option>
+          <option value="qwen2.5-72b-instruct">Qwen2.5 72B</option>
+          <option value="qwen2.5-7b-instruct">Qwen2.5 7B</option>
+          <option value="deepseek-chat">DeepSeek Chat</option>
+          <option value="gpt-4o">GPT-4o</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>API Key</label>
+        <input type="password" name="api_key" placeholder="填入你的 DashScope / OpenAI API Key" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-primary">创建并打开</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const API = '/api';
+
+async function loadProjects() {
+  const grid = document.getElementById('project-grid');
+  const empty = document.getElementById('empty-state');
+  const count = document.getElementById('project-count');
+  try {
+    const res = await fetch(`${API}/projects`);
+    const projects = await res.json();
+    count.textContent = `${projects.length} 部作品`;
+    if (!projects.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'flex';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.innerHTML = projects.map(p => `
+      <div class="card" onclick="location.href='/project/${p.id}'">
+        <div class="card-genre">${p.genre || '未分类'}</div>
+        <h3 class="card-title">${escapeHtml(p.title)}</h3>
+        <p class="card-prompt">${escapeHtml(p.initial_prompt || '')}</p>
+        <div class="card-footer">
+          <span class="card-meta">第 ${p.writing_chapter} 章</span>
+          <span class="card-meta">${fmtDate(p.updated_at)}</span>
+        </div>
+        <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="删除">✕</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    grid.innerHTML = '<p style="color:var(--danger)">加载失败：'+e.message+'</p>';
+  }
+}
+
+async function createProject(e) {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+  const data = Object.fromEntries(fd);
+  const res = await fetch(`${API}/projects`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data),
+  });
+  if (res.ok) {
+    const p = await res.json();
+    location.href = `/project/${p.id}`;
+  } else {
+    alert('创建失败');
+  }
+}
+
+async function deleteProject(id) {
+  if (!confirm('确定删除？')) return;
+  await fetch(`${API}/project/${id}`, {method: 'DELETE'});
+  loadProjects();
+}
+
+function showCreateModal() {
+  document.getElementById('create-modal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('create-modal').style.display = 'none';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+loadProjects();
+</script>
+{% endblock %}
