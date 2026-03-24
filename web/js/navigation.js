@@ -83,26 +83,6 @@ const NovelNav = (function() {
   }
 
   /**
-   * 打开角色管理页面
-   */
-  function openCharPage() {
-    if (!currentProject) return;
-
-    const pageHome = document.getElementById('page-home');
-    const pageProject = document.getElementById('page-project');
-    const pageSettings = document.getElementById('page-settings');
-    const pageChars = document.getElementById('page-chars');
-
-    if (pageHome) pageHome.classList.add('hidden');
-    if (pageProject) pageProject.classList.add('hidden');
-    if (pageSettings) pageSettings.classList.add('hidden');
-    if (pageChars) pageChars.classList.remove('hidden');
-
-    updateHeaderForProject();
-    renderCharList();
-  }
-
-  /**
    * 显示指定标签页
    */
   function showTab(tabName) {
@@ -258,10 +238,8 @@ const NovelNav = (function() {
       document.getElementById('btn-round2')?.setAttribute('disabled', 'disabled');
     }
 
-    // 渲染角色列表
-    if (currentProject.characters && currentProject.characters.length) {
-      renderCharListPreview(currentProject.characters);
-    }
+    // 渲染角色列表（无论是否为空都调用）
+    renderCharListPreview(currentProject.characters || []);
 
     // 渲染小说文本
     if (currentProject.novel_text) {
@@ -366,20 +344,47 @@ const NovelNav = (function() {
   function renderCharListPreview(characters) {
     const el = document.getElementById('char-list');
     if (!el) return;
+    
+    if (!characters || !characters.length) {
+      // 空状态显示
+      el.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--muted);font-size:.85rem">' +
+        '<div style="margin-bottom:.5rem">💀</div>' +
+        '<div>暂无角色</div>' +
+        '<div style="margin-top:.25rem;font-size:.75rem">生成大纲后会自动创建</div></div>';
+      return;
+    }
+    
     el.innerHTML = characters.map((c, idx) => `
-      <div class="char-card" style="position:relative">
+      <div class="char-card" data-char-idx="${idx}" style="position:relative">
         <div style="position:absolute;top:.3rem;right:.3rem;display:flex;gap:.2rem">
-          <button class="icon-btn" onclick="NovelUI.editCharacter(${idx})" title="编辑">✎</button>
-          <button class="icon-btn danger" onclick="NovelUI.deleteCharacter(${idx})" title="删除">✕</button>
+          <button class="icon-btn char-edit-btn" data-idx="${idx}" title="编辑">✎</button>
+          <button class="icon-btn danger char-del-btn" data-idx="${idx}" title="删除">✕</button>
         </div>
         <div class="char-name">${NovelUtils.escape(c.character_name || c.name || '')}</div>
         <div class="char-desc">${NovelUtils.escape(c.personality || c.initial_state || '')}</div>
       </div>
     `).join('');
+    
+    // 绑定编辑和删除按钮的事件
+    el.querySelectorAll('.char-edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        NovelUI.editCharacter(idx);
+      });
+    });
+    
+    el.querySelectorAll('.char-del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        NovelUI.deleteCharacter(idx);
+      });
+    });
   }
 
   /**
-   * 初始化设置UI
+   * 初始化设置 UI
    */
   function initializeSettingsUI() {
     const settings = NovelStorage.getSettings();
@@ -456,7 +461,6 @@ const NovelNav = (function() {
     goHome,
     openProject,
     goSettings,
-    openCharPage,
     showTab,
     saveCurrentProject,
     renderProjectList,

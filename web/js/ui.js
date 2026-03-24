@@ -313,8 +313,17 @@ const NovelUI = (function() {
       conflicts: []
     };
 
-    NovelProject.addCharacter(project.id, character);
+    // 直接添加到内存中的项目对象
+    if (!project.characters) project.characters = [];
+    character.id = character.id || NovelUtils.uuid();
+    project.characters.push(character);
+    
+    // 持久化到存储
+    NovelStorage.updateProject(project.id, { characters: project.characters });
+    
+    // 刷新 UI（立即更新显示）
     NovelNav.applyProjectToUI();
+    
     NovelUtils.toast('已添加角色：' + name);
   }
 
@@ -331,13 +340,18 @@ const NovelUI = (function() {
 
     const newPersonality = prompt('编辑角色描述：', char.personality || char.initial_state);
 
+    // 更新内存中的对象
     char.character_name = newName;
     char.name = newName;
     char.personality = newPersonality || char.personality;
     char.initial_state = newPersonality || char.initial_state;
 
-    NovelProject.updateProject(project.id, { characters: project.characters });
+    // 持久化到存储
+    NovelStorage.updateProject(project.id, { characters: project.characters });
+    
+    // 刷新 UI（立即更新显示）
     NovelNav.applyProjectToUI();
+    
     NovelUtils.toast('已更新角色：' + newName);
   }
 
@@ -351,9 +365,15 @@ const NovelUI = (function() {
     const char = project.characters[index];
     if (!confirm('确定删除角色「' + (char.character_name || char.name) + '」吗？')) return;
 
+    // 从内存中移除（直接修改数组）
     project.characters.splice(index, 1);
-    NovelProject.updateProject(project.id, { characters: project.characters });
+    
+    // 持久化到存储
+    NovelStorage.updateProject(project.id, { characters: project.characters });
+    
+    // 刷新 UI（立即更新显示）
     NovelNav.applyProjectToUI();
+    
     NovelUtils.toast('已删除角色');
   }
 
