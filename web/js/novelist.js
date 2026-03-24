@@ -87,8 +87,13 @@ const NovelWriter = (function() {
           writing_chapter: generatedCount + targetChapters.length
         });
         
-        // 更新UI
+        // 重新加载最新的项目数据
+        const updatedProject = NovelStorage.getProjectById(project.id);
+        NovelNav.setCurrentProject(updatedProject);
+        
+        // 更新 UI 并切换到输出 Tab
         NovelNav.applyProjectToUI();
+        NovelNav.showTab('output');
         NovelUtils.log('小说内容已保存', 'success');
         NovelUtils.toast(`成功生成 ${targetChapters.length} 章内容`, 'success');
       })

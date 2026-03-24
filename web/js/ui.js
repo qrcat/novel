@@ -227,11 +227,21 @@ const NovelUI = (function() {
       if (el) el.addEventListener('click', () => NovelNav.showTab(tab));
     });
 
-    // 正文按钮：显示正文内容
+    // 正文按钮：显示正文内容（控制中间区域）
     const btnNovelTab = document.getElementById('btn-novel-tab');
     if (btnNovelTab) {
       btnNovelTab.addEventListener('click', () => {
-        NovelNav.showTab('novel');
+        // 显示中间区域的 novel-panel，隐藏 outline-panel
+        const novelPanel = document.getElementById('novel-panel');
+        const outlinePanel = document.getElementById('outline-panel');
+        if (novelPanel) {
+          novelPanel.classList.remove('hidden');
+          novelPanel.style.display = '';
+        }
+        if (outlinePanel) {
+          outlinePanel.classList.add('hidden');
+          outlinePanel.style.display = 'none';
+        }
       });
     }
 

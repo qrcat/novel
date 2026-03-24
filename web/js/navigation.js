@@ -106,9 +106,6 @@ const NovelNav = (function() {
    * 显示指定标签页
    */
   function showTab(tabName) {
-    const outlinePanel = document.getElementById('outline-panel');
-    const novelPanel = document.getElementById('novel-panel');
-    
     // 切换右侧 Tab 面板（仅 output 和 outline）
     ['output', 'outline'].forEach(t => {
       const panel = document.getElementById('panel-' + t);
@@ -116,22 +113,9 @@ const NovelNav = (function() {
       if (panel) panel.classList.toggle('hidden', t !== tabName);
       if (tab) tab.classList.toggle('active', t === tabName);
     });
-
-    // 切换中间区域的内容显示
-    if (outlinePanel && novelPanel) {
-      if (tabName === 'outline') {
-        outlinePanel.classList.remove('hidden');
-        novelPanel.classList.add('hidden');
-      } else if (tabName === 'novel') {
-        // 点击正文按钮时，隐藏大纲，显示正文
-        outlinePanel.classList.add('hidden');
-        novelPanel.classList.remove('hidden');
-      } else {
-        // output tab - 保持大纲显示
-        outlinePanel.classList.remove('hidden');
-        novelPanel.classList.add('hidden');
-      }
-    }
+    
+    // 注意：中间区域的 novel-panel 和 outline-panel 不由右侧 Tab 控制
+    // 它们由中间的"正文"和"大纲"按钮独立控制
   }
 
   /**
@@ -146,7 +130,7 @@ const NovelNav = (function() {
   }
 
   /**
-   * 更新项目页面的header
+   * 更新项目页面的 header
    */
   function updateHeaderForProject() {
     if (!currentProject) return;
@@ -157,13 +141,11 @@ const NovelNav = (function() {
       <span class="toolbar-label">${NovelUtils.escape(currentProject.title)}</span>
       <button class="btn btn-ghost" id="btn-save-nav">保存</button>
       <button class="btn btn-ghost" id="btn-export-nav">导出</button>
-      <button class="btn btn-ghost" id="btn-chars-nav">👤 角色</button>
       <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
     `;
 
     document.getElementById('btn-save-nav')?.addEventListener('click', () => saveCurrentProject());
     document.getElementById('btn-export-nav')?.addEventListener('click', () => NovelUI.exportProject());
-    document.getElementById('btn-chars-nav')?.addEventListener('click', () => openCharPage());
     document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
   }
 
