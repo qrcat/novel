@@ -397,6 +397,7 @@ const NovelNav = (function() {
     const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
     const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
     const temperature = settings.temperature || 0.8;
+    const maxLoops = settings.maxLoops || 100;
 
     document.getElementById('s-api-key').value = apiKey;
     document.getElementById('s-base-url').value = baseUrl;
@@ -404,6 +405,8 @@ const NovelNav = (function() {
     document.getElementById('s-model').value = model;
     document.getElementById('s-temp').value = temperature;
     document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
+    document.getElementById('s-max-loops').value = maxLoops;
+    document.getElementById('s-max-loops-label').textContent = maxLoops;
   }
 
   /**

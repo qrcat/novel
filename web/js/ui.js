@@ -86,6 +86,7 @@ const NovelUI = (function() {
     const channel = document.getElementById('s-channel').value;
     const model = document.getElementById('s-model').value;
     const temperature = parseFloat(document.getElementById('s-temp').value);
+    const maxLoops = parseInt(document.getElementById('s-max-loops').value);
 
     // 保存全局设置（向后兼容）
     const settings = {
@@ -93,7 +94,8 @@ const NovelUI = (function() {
       base_url: baseUrl,
       channel: channel,
       model: model,
-      temperature: temperature
+      temperature: temperature,
+      maxLoops: maxLoops
     };
     NovelStorage.saveSettings(settings);
 
@@ -278,15 +280,31 @@ const NovelUI = (function() {
       sChannel.addEventListener('change', applyChannelDefaults);
     }
 
+    // 滑块实时显示数值
     const sTemp = document.getElementById('s-temp');
     if (sTemp) {
-      sTemp.addEventListener('input', (e) => updateTemperatureLabel(e.target.value));
+      sTemp.addEventListener('input', function() {
+        document.getElementById('s-temp-label').textContent = parseFloat(this.value).toFixed(2);
+      });
+    }
+
+    const sMaxLoops = document.getElementById('s-max-loops');
+    if (sMaxLoops) {
+      sMaxLoops.addEventListener('input', function() {
+        document.getElementById('s-max-loops-label').textContent = parseInt(this.value);
+      });
     }
 
     // 角色新增按钮
     const btnAddChar = document.getElementById('btn-add-char');
     if (btnAddChar) {
       btnAddChar.addEventListener('click', showAddCharModal);
+    }
+
+    // 多 Agent 模式切换按钮
+    const btnMultiAgent = document.getElementById('btn-multi-agent-toggle');
+    if (btnMultiAgent) {
+      btnMultiAgent.addEventListener('click', toggleMultiAgentMode);
     }
 
     console.log('[NovelAgents] UI events bound');
@@ -375,6 +393,38 @@ const NovelUI = (function() {
     NovelNav.applyProjectToUI();
     
     NovelUtils.toast('已删除角色');
+  }
+
+  /**
+   * 切换多 Agent 模式
+   */
+  function toggleMultiAgentMode() {
+    const btn = document.getElementById('btn-multi-agent-toggle');
+    const statusSpan = document.getElementById('multi-agent-status');
+    
+    if (!btn || !statusSpan) return;
+    
+    // 切换状态
+    const currentState = btn.textContent.includes('开启') ? true : false;
+    const newState = !currentState;
+    
+    // 更新 UI
+    if (newState) {
+      statusSpan.textContent = '开启';
+      btn.classList.add('btn-primary');
+      btn.classList.remove('btn-ghost');
+      NovelUtils.toast('多 Agent 模式已开启', 'success');
+    } else {
+      statusSpan.textContent = '关闭';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-ghost');
+      NovelUtils.toast('多 Agent 模式已关闭，使用单 Agent 模式', 'info');
+    }
+    
+    // 调用 NovelWriter 的设置方法
+    if (typeof NovelWriter.setMultiAgentMode === 'function') {
+      NovelWriter.setMultiAgentMode(newState);
+    }
   }
 
   return {

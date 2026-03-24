@@ -185,6 +185,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
       <button class="btn btn-ghost" id="btn-round" disabled onclick="window.generateRound(1)">写一段</button>
       <button class="btn btn-ghost" id="btn-novel-tab">正文</button>
       <button class="btn btn-ghost" id="btn-save-text">保存正文</button>
+      <button class="btn btn-ghost" id="btn-multi-agent-toggle" title="切换多 Agent 模式">🤖 多 Agent: <span id="multi-agent-status">开启</span></button>
     </div>
     <div class="outline-scroll" id="outline-panel">
       <div class="outline-empty" id="outline-empty">
@@ -300,6 +301,19 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
         </div>
       </div>
 
+      <div style="margin-bottom:1.5rem">
+        <div class="panel-title">&#129302; Agent &#24490;&#29615;&#25511;&#21046;</div>
+        <div class="form-group" style="margin-bottom:.75rem">
+          <label class="form-label">&#26368;&#22823;&#24490;&#29615;&#27425;&#25968; &nbsp; <span id="s-max-loops-label">100</span></label>
+          <div class="control-row">
+            <input type="range" id="s-max-loops" min="1" max="200" step="1" value="100">
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:.4rem;font-family:'DM Mono',monospace">
+            &#27599;&#31456;&#26368;&#22810;&#29983;&#25104;&#36719;&#27425;&#65292;&#20540;&#36234;&#22823;&#36234;&#23481;&#26131;&#29983;&#25104;&#38271;&#31456;&#33410;
+          </div>
+        </div>
+      </div>
+
       <div style="display:flex;gap:.75rem;flex-wrap:wrap">
         <button class="btn btn-primary" id="btn-save-settings">&#128190; &#20445;&#23384;&#35774;&#32622;</button>
         <button class="btn btn-ghost" id="btn-test-conn">&#128270; &#27979;&#35797;&#36830;&#25509;</button>
@@ -374,6 +388,8 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 <script src="web/js/utils.js"></script>
 <script src="web/js/providers.js"></script>
 <script src="web/js/api.js"></script>
+<script src="web/js/agents.js"></script>
+<script src="web/js/character_tools.js"></script>
 <script src="web/js/project.js"></script>
 <script src="web/js/navigation.js"></script>
 <script src="web/js/ui.js"></script>

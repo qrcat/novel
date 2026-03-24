@@ -10,6 +10,7 @@ const NovelStorage = (function() {
   const DEFAULT_SETTINGS = {
     activeProvider: 'dashscope',  // 当前活跃的提供商
     temperature: 0.8,
+    maxLoops: 100,  // Agent 最大循环次数
     // 以下字段保留向后兼容
     api_key: '',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
