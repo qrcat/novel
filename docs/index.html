@@ -150,7 +150,10 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 <div class="layout hidden" id="page-project">
   <aside class="sidebar">
     <div>
-      <div class="panel-title">小说信息</div>
+      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>小说信息</span>
+        <button class="btn btn-ghost" id="btn-edit-project" style="padding:.2rem .5rem;font-size:.7rem">✎ 编辑</button>
+      </div>
       <div class="info-block">
         <div class="info-row"><span class="info-label">标题</span><span class="info-value" id="info-title">-</span></div>
         <div class="info-row"><span class="info-label">类型</span><span class="info-value" id="info-genre">-</span></div>
@@ -378,6 +381,44 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
     <div id="char-form-container"></div>
   </div>
 </div>
+
+<!-- 项目编辑弹窗 -->
+<div class="modal-overlay hidden" id="project-edit-modal">
+  <div class="modal" style="max-width:520px;width:95vw">
+    <div class="modal-header">
+      <span class="modal-title" id="project-edit-title">编辑项目</span>
+      <button class="close-btn" id="project-edit-close">✕</button>
+    </div>
+    <form id="project-edit-form" class="modal-form">
+      <div class="form-group">
+        <label class="form-label">标题</label>
+        <input type="text" id="pe-title" placeholder="小说标题" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">类型</label>
+        <select id="pe-genre">
+          <option value="悬疑推理">悬疑推理</option>
+          <option value="都市言情">都市言情</option>
+          <option value="科幻">科幻</option>
+          <option value="奇幻">奇幻</option>
+          <option value="历史">历史</option>
+          <option value="恐怖">恐怖</option>
+          <option value="武侠">武侠</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">初始设定</label>
+        <textarea id="pe-initial-prompt" rows="4" placeholder="故事背景、人物关系、核心悬念等..."></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="project-edit-cancel">取消</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script src="index.js"></script>
 </body>
 </html>

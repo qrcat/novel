@@ -230,6 +230,35 @@
     a.click();
   }
 
+  // ── Project Edit ─────────────────────────────────────────────────
+  function openProjectEditModal() {
+    if (!currentProject) return;
+    var p = currentProject;
+    document.getElementById('pe-title').value = p.title || '';
+    document.getElementById('pe-genre').value = p.genre || '悬疑推理';
+    document.getElementById('pe-initial-prompt').value = p.initial_prompt || '';
+    document.getElementById('project-edit-modal').classList.remove('hidden');
+    document.getElementById('pe-title').focus();
+  }
+
+  function closeProjectEditModal() {
+    document.getElementById('project-edit-modal').classList.add('hidden');
+  }
+
+  function saveProjectEdit(e) {
+    e.preventDefault();
+    if (!currentProject) return;
+    currentProject.title = document.getElementById('pe-title').value.trim();
+    currentProject.genre = document.getElementById('pe-genre').value;
+    currentProject.initial_prompt = document.getElementById('pe-initial-prompt').value.trim();
+    currentProject.updated_at = new Date().toISOString();
+    save();
+    closeProjectEditModal();
+    applyProject();
+    document.getElementById('proj-title-label').textContent = currentProject.title || '';
+    toast('项目已更新');
+  }
+
   // ── Apply data to page ──────────────────────────────────────────
   function applyProject() {
     if (!currentProject) return;
@@ -1030,6 +1059,16 @@
     if (btnExport) btnExport.addEventListener('click', exportProject);
     var btnDelete = document.getElementById('btn-delete');
     if (btnDelete) btnDelete.addEventListener('click', deleteCurrentProject);
+
+    // Project edit
+    var btnEditProject = document.getElementById('btn-edit-project');
+    if (btnEditProject) btnEditProject.addEventListener('click', openProjectEditModal);
+    var btnEditClose = document.getElementById('project-edit-close');
+    if (btnEditClose) btnEditClose.addEventListener('click', closeProjectEditModal);
+    var btnEditCancel = document.getElementById('project-edit-cancel');
+    if (btnEditCancel) btnEditCancel.addEventListener('click', closeProjectEditModal);
+    var formEdit = document.getElementById('project-edit-form');
+    if (formEdit) formEdit.addEventListener('submit', saveProjectEdit);
 
     // Settings page controls
     var btnSaveSettings = document.getElementById('btn-save-settings');
