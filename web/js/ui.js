@@ -39,49 +39,6 @@ const NovelUI = (function() {
   }
 
   /**
-   * 显示编辑项目的弹窗
-   */
-  function showEditModal() {
-    const project = NovelNav.getCurrentProject();
-    if (!project) {
-      NovelUtils.toast('请先打开一个项目', 'error');
-      return;
-    }
-
-    // 填充表单数据
-    const titleInput = document.getElementById('pe-title');
-    const genreSelect = document.getElementById('pe-genre');
-    const promptTextarea = document.getElementById('pe-initial-prompt');
-
-    if (titleInput) titleInput.value = project.title || '';
-    if (genreSelect) genreSelect.value = project.genre || '其他';
-    if (promptTextarea) promptTextarea.value = project.initial_prompt || '';
-
-    // 显示弹窗
-    const overlay = document.getElementById('project-edit-modal');
-    if (overlay) overlay.classList.remove('hidden');
-  }
-
-  /**
-   * 关闭编辑项目弹窗
-   */
-  function closeEditModal() {
-    const overlay = document.getElementById('project-edit-modal');
-    if (overlay) overlay.classList.add('hidden');
-  }
-
-  /**
-   * 处理项目编辑表单提交
-   */
-  function handleEditProjectForm(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    handleEditProject(formData);
-    closeEditModal();
-  }
-
-  /**
    * 处理项目编辑
    */
   function handleEditProject(formData) {
@@ -506,30 +463,6 @@ const NovelUI = (function() {
 
     // 大纲生成按钮（会在大纲生成模块中添加）
     // 写作按钮（会在写作模块中添加）
-
-    // 项目编辑按钮
-    const btnEditProject = document.getElementById('btn-edit-project');
-    if (btnEditProject) {
-      btnEditProject.addEventListener('click', showEditModal);
-    }
-
-    // 项目编辑表单提交
-    const projectEditForm = document.getElementById('project-edit-form');
-    if (projectEditForm) {
-      projectEditForm.addEventListener('submit', handleEditProjectForm);
-    }
-
-    // 项目编辑取消按钮
-    const projectEditCancel = document.getElementById('project-edit-cancel');
-    if (projectEditCancel) {
-      projectEditCancel.addEventListener('click', closeEditModal);
-    }
-
-    // 项目编辑关闭按钮
-    const projectEditClose = document.getElementById('project-edit-close');
-    if (projectEditClose) {
-      projectEditClose.addEventListener('click', closeEditModal);
-    }
 
     // 设置相关按钮
     const btnSaveSettings = document.getElementById('btn-save-settings');
@@ -1308,8 +1241,6 @@ const NovelUI = (function() {
   return {
     showCreateModal,
     closeModal,
-    showEditModal,
-    closeEditModal,
     handleCreateProject,
     handleEditProject,
     exportProject,
@@ -1334,6 +1265,7 @@ const NovelUI = (function() {
     deleteOutlineChapter,
     formatOutlineToText,
     parseTextToOutline,
-    renderCharactersList
+    renderCharactersList,
+    initializeSettingsUI
   };
 })();
