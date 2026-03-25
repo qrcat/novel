@@ -183,9 +183,38 @@ const NovelUI = (function() {
 
     // 更新表单字段显示
     document.getElementById('s-api-key').value = providerConfig.apiKey || '';
-    document.getElementById('s-model').value = providerConfig.model || (provider ? provider.defaultModel : '');
+    
+    // 动态更新模型列表
+    updateModelOptions(channel, providerConfig.model || (provider ? provider.defaultModel : ''));
 
     NovelUtils.toast(`已切换到 ${provider ? provider.name : channel}`);
+  }
+
+  /**
+   * 动态更新模型选择下拉框
+   */
+  function updateModelOptions(channel, selectedModel) {
+    const modelSelect = document.getElementById('s-model');
+    if (!modelSelect) return;
+
+    const models = NovelProviders.getModels(channel);
+    if (!models || models.length === 0) return;
+
+    // 清空现有选项
+    modelSelect.innerHTML = '';
+
+    // 添加新选项
+    models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model.id;
+      option.textContent = model.name;
+      modelSelect.appendChild(option);
+    });
+
+    // 设置选中的模型
+    if (selectedModel) {
+      modelSelect.value = selectedModel;
+    }
   }
 
   /**

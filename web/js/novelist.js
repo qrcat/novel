@@ -181,6 +181,18 @@ const NovelWriter = (function() {
         // 更新 UI 并切换到输出 Tab
         NovelNav.applyProjectToUI();
         NovelNav.showTab('output');
+        
+        // 切换到正文视图（显示 novel-container，隐藏 outline-container）
+        const outlineContainer = document.getElementById('outline-container');
+        const novelContainer = document.getElementById('novel-container');
+        if (outlineContainer) {
+          outlineContainer.classList.add('hidden');
+        }
+        if (novelContainer) {
+          novelContainer.classList.remove('hidden');
+          novelContainer.style.display = 'flex';
+        }
+        
         NovelUtils.log('小说内容已保存', 'success');
         NovelUtils.toast(`成功生成 ${targetChapters.length} 章内容`, 'success');
       })

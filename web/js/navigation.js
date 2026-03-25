@@ -754,7 +754,15 @@ const NovelNav = (function() {
     document.getElementById('s-api-key').value = apiKey;
     document.getElementById('s-base-url').value = baseUrl;
     document.getElementById('s-channel').value = activeProvider || 'dashscope';
-    document.getElementById('s-model').value = model;
+    
+    // 先根据当前渠道初始化模型列表
+    if (typeof NovelUI !== 'undefined' && typeof NovelUI.updateModelOptions === 'function') {
+      NovelUI.updateModelOptions(activeProvider || 'dashscope', model);
+    } else {
+      // 如果 NovelUI 还未加载，直接设置值（向后兼容）
+      document.getElementById('s-model').value = model;
+    }
+    
     document.getElementById('s-temp').value = temperature;
     document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
   }

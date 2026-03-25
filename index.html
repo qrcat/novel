@@ -326,13 +326,13 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
           <input type="text" id="s-base-url" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1">
         </div>
         <div class="form-group">
-          <label class="form-label">&#36890;&#36947;&#35780;&#27983;</label>
+          <label class="form-label">渠道</label>
           <select id="s-channel">
-            <option value="dashscope">&#38463;&#37324;&#20304;&#25945; (DashScope)</option>
+            <option value="dashscope">DashScope</option>
             <option value="openai">OpenAI</option>
             <option value="deepseek">DeepSeek</option>
             <option value="claude">Claude</option>
-            <option value="custom">&#33258;&#23450;&#20041;</option>
+            <option value="custom">自定义</option>
           </select>
         </div>
       </div>
@@ -342,16 +342,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
         <div class="form-group" style="margin-bottom:.75rem">
           <label class="form-label">&#20027;&#35268;&#21017;&#27169;&#22411;</label>
           <select id="s-model">
-            <option value="qwen-plus">&#36890;&#20041;&#21315;&#38395; Plus</option>
-            <option value="qwen-max">&#36890;&#20041;&#21315;&#38395; Max</option>
-            <option value="qwen2.5-72b-instruct">Qwen2.5 72B Instruct</option>
-            <option value="qwen2.5-14b-instruct">Qwen2.5 14B Instruct</option>
-            <option value="qwen2.5-7b-instruct">Qwen2.5 7B Instruct</option>
-            <option value="deepseek-chat">DeepSeek V3 Chat</option>
-            <option value="deepseek-coder">DeepSeek Coder</option>
-            <option value="gpt-4o">GPT-4o</option>
-            <option value="gpt-4o-mini">GPT-4o Mini</option>
-            <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+            <!-- 模型选项将由 JavaScript 根据选择的提供商动态加载 -->
           </select>
         </div>
         <div class="form-group">
@@ -371,12 +362,29 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
     </div>
 
     <div class="card" style="cursor:default">
-      <div class="panel-title">&#128203; &#20351;&#29992;&#35828;&#26126;</div>
-      <div style="font-size:.85rem;line-height:1.8;color:var(--muted)">
-        <p>&#183; &#22312;&#27491;&#25991;&#20013;&#22635;&#20837; API Key&#65292;&#31995;&#32479;&#20250;&#20445;&#23384;&#21040;&#26412;&#22320;&#65288;&#19981;&#20250;&#19978;&#20256;&#21040;&#20219;&#20309;&#26381;&#21153;&#22120;&#65289;</p>
-        <p style="margin-top:.5rem">&#183; &#25903;&#25345;&#38463;&#37324;&#20304;&#25945;&#12289;OpenAI&#12289;DeepSeek&#31561;&#27169;&#22411;</p>
-        <p style="margin-top:.5rem">&#183; &#27599;&#20010;&#23567;&#35828;&#39033;&#30446;&#21487;&#29420;&#31435;&#37197;&#32622;&#27169;&#22411;&#65292;&#20063;&#21487;&#20351;&#29992;&#20844;&#20849;&#35774;&#32622;</p>
-        <p style="margin-top:.5rem">&#183; &#25171;&#24320;&#27993;&#35270;&#22120;&#25509;&#21475;&#65288;F12&#65289;&#26597;&#30475;&#25551;&#36807;&#36807;&#31243;&#26085;&#24536;</p>
+      <div class="panel-title">&#128203; 使用说明</div>
+      <div style="font-size:.85rem;line-height:1.9;color:var(--muted)">
+        <p><strong style="color:var(--text)">1. API Key 配置</strong></p>
+        <p style="margin-top:.25rem">&#183; 填写您的 API Key（支持阿里云通义千问、OpenAI、DeepSeek、Claude 等）</p>
+        <p>&#183; 系统会将配置保存在本地浏览器，不会上传到任何服务器</p>
+        
+        <p style="margin-top:1rem"><strong style="color:var(--text)">2. Base URL 设置</strong></p>
+        <p style="margin-top:.25rem">&#183; 使用阿里云通义千问：保持默认值 `https://dashscope.aliyuncs.com/compatible-mode/v1`</p>
+        <p>&#183; 使用 OpenAI/DeepSeek/Claude：选择对应渠道后自动填充官方地址</p>
+        <p>&#183; 自定义服务：选择"自定义"后填写您的代理地址或私有部署地址</p>
+        
+        <p style="margin-top:1rem"><strong style="color:var(--text)">3. 模型选择</strong></p>
+        <p style="margin-top:.25rem">&#183; 推荐使用 qwen-plus 或 gpt-4o 等主流模型，写作效果更好</p>
+        <p>&#183; Temperature 建议设置在 0.7-0.9 之间，平衡创意与连贯性</p>
+        
+        <p style="margin-top:1rem"><strong style="color:var(--text)">4. 项目独立配置</strong></p>
+        <p style="margin-top:.25rem">&#183; 每个小说项目可单独配置 API 和模型，也可复用此全局设置</p>
+        <p>&#183; 在项目页面点击"⚙️ 设置"可访问项目专属配置</p>
+        
+        <p style="margin-top:1rem"><strong style="color:var(--text)">5. 调试与帮助</strong></p>
+        <p style="margin-top:.25rem">&#183; 点击"测试连接"验证配置是否生效</p>
+        <p>&#183; 打开浏览器开发者工具（F12）查看详细日志</p>
+        <p>&#183; 如遇问题，请先检查 API Key 余额及网络连通性</p>
       </div>
     </div>
 
