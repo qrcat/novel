@@ -246,13 +246,9 @@ const NovelNav = (function() {
       document.getElementById('btn-round')?.setAttribute('disabled', 'disabled');
       document.getElementById('btn-round2')?.setAttribute('disabled', 'disabled');
       
-      // 没有大纲，启用生成按钮
-      const btnOutline = document.getElementById('btn-outline');
-      if (btnOutline) {
-        btnOutline.disabled = false;
-        btnOutline.style.opacity = '';
-        btnOutline.style.cursor = '';
-      }
+      // 没有大纲，隐藏 + 章节按钮
+      const btnAddOutlineChapter = document.getElementById('btn-add-outline-chapter');
+      if (btnAddOutlineChapter) btnAddOutlineChapter.style.display = 'none';
     }
 
     // 渲染角色列表（无论是否为空都调用）
@@ -287,8 +283,14 @@ const NovelNav = (function() {
     if (theme.theme) {
       mainHTML += `<div class="theme-block">
         <div class="panel-title" style="margin-bottom:.5rem">核心主旨</div>
-        <div class="theme-text">${NovelUtils.escape(theme.theme)}</div>
-        ${theme.purpose ? '<div class="theme-purpose">' + NovelUtils.escape(theme.purpose) + '</div>' : ''}
+        <div class="theme-text editable-field" data-field="theme_theme">${NovelUtils.escape(theme.theme)}</div>
+        ${theme.purpose ? '<div class="theme-purpose editable-field" data-field="theme_purpose">' + NovelUtils.escape(theme.purpose) + '</div>' : '<div class="theme-purpose editable-field empty-hint" data-field="theme_purpose" style="font-style:italic;color:var(--border)">[点击添加目的]</div>'}
+      </div>`;
+    } else {
+      mainHTML += `<div class="theme-block">
+        <div class="panel-title" style="margin-bottom:.5rem">核心主旨</div>
+        <div class="theme-text editable-field empty-hint" data-field="theme_theme" style="font-style:italic;color:var(--border)">[点击添加核心主旨]</div>
+        <div class="theme-purpose editable-field empty-hint" data-field="theme_purpose" style="font-style:italic;color:var(--border)">[点击添加目的]</div>
       </div>`;
     }
 
@@ -296,21 +298,34 @@ const NovelNav = (function() {
     if (outline.plot_paragraph) {
       mainHTML += `<div style="margin-bottom:1.25rem">
         <div class="panel-title" style="margin-bottom:.5rem">段落剧情</div>
-        <p style="font-size:.88rem;line-height:1.8">${NovelUtils.escape(outline.plot_paragraph)}</p>
+        <p class="editable-field" data-field="plot_paragraph" style="font-size:.88rem;line-height:1.8;cursor:text">${NovelUtils.escape(outline.plot_paragraph)}</p>
+      </div>`;
+    } else {
+      mainHTML += `<div style="margin-bottom:1.25rem">
+        <div class="panel-title" style="margin-bottom:.5rem">段落剧情</div>
+        <p class="editable-field empty-hint" data-field="plot_paragraph" style="font-size:.88rem;line-height:1.8;font-style:italic;color:var(--border);cursor:text">[点击添加段落剧情]</p>
       </div>`;
     }
 
     // 章节列表
     if (outline.chapters && outline.chapters.length) {
       mainHTML += `<div style="margin-bottom:1.25rem">
-        <div class="panel-title" style="margin-bottom:.5rem">章节列表</div>
-        ${outline.chapters.map(ch => `
-          <div class="chapter-block">
+        <div class="panel-title" style="margin-bottom:.5rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>章节列表</span>
+          <span style="font-size:.75rem; color:var(--muted); font-family:'DM Mono',monospace">共 ${outline.chapters.length} 章 · 点击卡片右上角可编辑/删除</span>
+        </div>
+        ${outline.chapters.map((ch, idx) => `
+          <div class="chapter-block chapter-editable" data-idx="${idx}" style="position:relative; cursor:pointer;">
+            <div style="position:absolute;top:.5rem;right:.5rem;display:flex;gap:.25rem;opacity:0;transition:opacity .15s" class="chapter-actions">
+              <button class="icon-btn chapter-edit-btn" data-idx="${idx}" title="编辑">✎</button>
+              <button class="icon-btn danger chapter-del-btn" data-idx="${idx}" title="删除">✕</button>
+            </div>
             <div class="chapter-num">第${ch.chapter_number}章</div>
-            <div class="chapter-title">${NovelUtils.escape(ch.chapter_title || '')}</div>
-            <div class="chapter-one-sentence">${NovelUtils.escape(ch.one_sentence || '')}</div>
-            ${ch.expanded_paragraph ? `<div style="font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.6">${NovelUtils.escape(ch.expanded_paragraph)}</div>` : ''}
-            ${ch.key_events && ch.key_events.length ? `<div class="chapter-meta"><span class="cur">关键事件</span>${ch.key_events.map(e => `<span>${NovelUtils.escape(e)}</span>`).join('')}</div>` : ''}
+            <div class="chapter-title editable-field" data-field="chapter_title">${NovelUtils.escape(ch.chapter_title || '')}</div>
+            <div class="chapter-one-sentence editable-field" data-field="one_sentence" style="min-height:1.6em">${NovelUtils.escape(ch.one_sentence || '')}</div>
+            ${ch.expanded_paragraph ? `<div class="editable-field" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.6">${NovelUtils.escape(ch.expanded_paragraph)}</div>` : '<div class="editable-field empty-hint" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--border);margin-top:.4rem;line-height:1.6;font-style:italic">[点击添加详细内容]</div>'}
+            ${ch.scene_setting ? `<div class="editable-field" data-field="scene_setting" style="font-size:.78rem;color:#8b5cf6;margin-top:.3rem"><span style="color:#a78bfa;font-weight:bold">场景：</span><span class="scene-content">${NovelUtils.escape(ch.scene_setting)}</span></div>` : '<div class="editable-field empty-hint" data-field="scene_setting" style="font-size:.78rem;color:var(--border);margin-top:.3rem;font-style:italic">[点击添加场景设定]</div>'}
+            ${ch.key_events && ch.key_events.length ? `<div class="chapter-meta editable-field" data-field="key_events"><span class="cur">关键事件</span>${ch.key_events.map(e => `<span>${NovelUtils.escape(e)}</span>`).join('')}</div>` : '<div class="chapter-meta editable-field empty-hint" data-field="key_events" style="margin-top:.4rem"><span style="color:var(--border);font-size:.75rem;font-style:italic">[点击添加关键事件]</span></div>'}
           </div>
         `).join('')}
       </div>`;
@@ -356,6 +371,225 @@ const NovelNav = (function() {
       outlineEmpty.classList.add('hidden');
     }
     main.classList.remove('hidden');
+
+    // 为章节的编辑和删除按钮绑定事件
+    main.querySelectorAll('.chapter-edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        NovelUI.editOutlineChapter(idx);
+      });
+    });
+    
+    main.querySelectorAll('.chapter-del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        NovelUI.deleteOutlineChapter(idx);
+      });
+    });
+
+    // 为可编辑字段添加点击编辑功能
+    main.querySelectorAll('.editable-field').forEach(field => {
+      field.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // 检查是否属于章节卡片
+        const chapterBlock = field.closest('.chapter-editable');
+        if (chapterBlock) {
+          // 章节字段编辑
+          const chapterIdx = parseInt(chapterBlock.getAttribute('data-idx'));
+          const fieldName = field.getAttribute('data-field');
+          const currentValue = field.classList.contains('empty-hint') ? '' : field.textContent.trim();
+          
+          // 创建编辑模式
+          enableInlineEdit(field, chapterIdx, fieldName, currentValue);
+        } else {
+          // 全局字段编辑（主题、段落剧情）
+          const fieldName = field.getAttribute('data-field');
+          const currentValue = field.classList.contains('empty-hint') || field.textContent === '[点击添加核心主旨]' || field.textContent === '[点击添加目的]' || field.textContent === '[点击添加段落剧情]' ? '' : field.textContent.trim();
+          
+          // 创建编辑模式
+          enableGlobalFieldEdit(field, fieldName, currentValue);
+        }
+      });
+    });
+  }
+
+  /**
+   * 启用内联编辑模式
+   */
+  function enableInlineEdit(fieldElement, chapterIndex, fieldName, currentValue) {
+    // 如果已经在编辑模式，不重复创建
+    if (fieldElement.querySelector('input') || fieldElement.querySelector('textarea')) return;
+
+    const project = getCurrentProject();
+    if (!project || !project.outline || !project.outline.chapters[chapterIndex]) return;
+
+    const chapter = project.outline.chapters[chapterIndex];
+    
+    // 根据字段类型创建不同的编辑器
+    let editor;
+    if (fieldName === 'key_events') {
+      // 关键事件使用逗号分隔的输入框
+      const eventsArray = Array.isArray(chapter.key_events) ? chapter.key_events : [];
+      editor = document.createElement('input');
+      editor.type = 'text';
+      editor.value = eventsArray.join(', ');
+      editor.placeholder = '用英文逗号分隔多个事件';
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.75rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        // 使用英文逗号分割，并过滤空白项
+        const eventsArray = newValue.split(/,/).map(s => s.trim()).filter(s => s);
+        chapter.key_events = eventsArray;
+        saveAndRefresh(project);
+      });
+    } else if (fieldName === 'expanded_paragraph' || fieldName === 'scene_setting') {
+      // 详细内容使用多行文本框
+      editor = document.createElement('textarea');
+      editor.value = currentValue;
+      editor.placeholder = fieldName === 'expanded_paragraph' ? '添加本章详细内容...' : '添加场景设定...';
+      editor.rows = 3;
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.82rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit; resize:vertical;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        chapter[fieldName] = newValue;
+        saveAndRefresh(project);
+      });
+    } else {
+      // 其他字段使用单行输入框
+      editor = document.createElement('input');
+      editor.type = 'text';
+      editor.value = currentValue;
+      editor.placeholder = '点击输入内容';
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.85rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        chapter[fieldName] = newValue;
+        saveAndRefresh(project);
+      });
+    }
+
+    // 处理 Enter 键保存
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && fieldName !== 'expanded_paragraph') {
+        e.preventDefault();
+        editor.blur();
+      }
+      if (e.key === 'Escape') {
+        renderOutline(project.outline); // 重新渲染，放弃修改
+      }
+    });
+
+    // 替换原内容
+    const originalContent = fieldElement.innerHTML;
+    fieldElement.setAttribute('data-original-html', originalContent);
+    fieldElement.innerHTML = '';
+    fieldElement.appendChild(editor);
+    
+    // 聚焦编辑器
+    setTimeout(() => editor.focus(), 10);
+  }
+
+  /**
+   * 启用全局字段编辑模式（主题、段落剧情）
+   */
+  function enableGlobalFieldEdit(fieldElement, fieldName, currentValue) {
+    // 如果已经在编辑模式，不重复创建
+    if (fieldElement.querySelector('input') || fieldElement.querySelector('textarea')) return;
+
+    const project = getCurrentProject();
+    if (!project || !project.outline) return;
+
+    const outline = project.outline;
+    
+    // 根据字段类型创建不同的编辑器
+    let editor;
+    
+    // 解析字段名，获取实际的数据路径
+    if (fieldName === 'theme_theme' || fieldName === 'theme_purpose') {
+      // 主题相关字段
+      if (!outline.theme) outline.theme = {};
+      
+      if (fieldName === 'theme_purpose') {
+        // 目的使用多行文本框
+        editor = document.createElement('textarea');
+        editor.value = currentValue;
+        editor.placeholder = '添加主题的目的或用途...';
+        editor.rows = 2;
+        editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.82rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit; resize:vertical;';
+        
+        editor.addEventListener('blur', () => {
+          const newValue = editor.value.trim();
+          outline.theme.purpose = newValue;
+          saveAndRefresh(project);
+        });
+      } else {
+        // 核心主旨使用单行输入框（类似 key_events）
+        editor = document.createElement('input');
+        editor.type = 'text';
+        editor.value = currentValue;
+        editor.placeholder = '添加故事的核心主旨...';
+        editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.85rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
+        
+        editor.addEventListener('blur', () => {
+          const newValue = editor.value.trim();
+          outline.theme.theme = newValue;
+          saveAndRefresh(project);
+        });
+      }
+    } else if (fieldName === 'plot_paragraph') {
+      // 段落剧情使用多行文本框
+      editor = document.createElement('textarea');
+      editor.value = currentValue;
+      editor.placeholder = '用一段连贯的文字概述整体剧情...';
+      editor.rows = 5;
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.88rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit; resize:vertical; line-height:1.8;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        outline.plot_paragraph = newValue;
+        saveAndRefresh(project);
+      });
+    }
+
+    // 处理 Enter 键保存（多行文本需要 Ctrl+Enter）
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && editor.tagName.toLowerCase() !== 'textarea') {
+        // 单行输入框直接 Enter 保存
+        e.preventDefault();
+        editor.blur();
+      } else if (e.key === 'Enter' && e.ctrlKey && editor.tagName.toLowerCase() === 'textarea') {
+        // 多行文本框需要 Ctrl+Enter
+        e.preventDefault();
+        editor.blur();
+      }
+      if (e.key === 'Escape') {
+        renderOutline(outline); // 重新渲染，放弃修改
+      }
+    });
+
+    // 替换原内容
+    const originalContent = fieldElement.innerHTML;
+    fieldElement.setAttribute('data-original-html', originalContent);
+    fieldElement.innerHTML = '';
+    fieldElement.appendChild(editor);
+    
+    // 聚焦编辑器
+    setTimeout(() => editor.focus(), 10);
+  }
+
+  /**
+   * 保存并刷新 UI
+   */
+  function saveAndRefresh(project) {
+    NovelStorage.updateProject(project.id, { outline: project.outline });
+    renderOutline(project.outline);
+    NovelUtils.toast('已保存');
   }
 
   /**

@@ -86,7 +86,12 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .outline-empty{color:var(--muted);text-align:center;padding:3rem;font-size:.9rem;line-height:2}
 .chapter-block{margin-bottom:1.25rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;transition:border-color .2s}
 .chapter-block:hover{border-color:rgba(201,168,76,.4)}
+.chapter-block:hover .chapter-actions{opacity:1}
 .chapter-block.current{border-color:var(--accent);box-shadow:0 0 20px rgba(201,168,76,.15)}
+.chapter-block.editing{border-color:var(--accent); background:rgba(201,168,76,.03)}
+.editable-field:hover{background:rgba(201,168,76,.05); border-radius:3px; cursor:text}
+.empty-hint:hover{color:var(--accent)!important}
+.theme-block .editable-field:hover{background:rgba(255,255,255,.08)}
 .chapter-num{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);letter-spacing:.1em}
 .chapter-title{font-size:1.05rem;color:var(--accent);margin:.3rem 0 .4rem}
 .chapter-one-sentence{font-size:.82rem;color:var(--muted);font-style:italic;border-left:2px solid var(--border);padding-left:.75rem;margin:.4rem 0;line-height:1.6}
@@ -105,6 +110,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .novel-container{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
 .novel-content-wrapper{flex:1;overflow:auto;position:relative}
 .novel-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.8);flex-shrink:0}
+.outline-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.95);flex-shrink:0}
 #novel-editor{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;border:none;outline:none;background:transparent;color:var(--text);font-family:'Noto Serif SC',serif;resize:none}
 .output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
 .output-box:empty::before{content:'等待生成...';color:var(--muted)}
@@ -192,6 +198,9 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
           <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
         </div>
         <div id="outline-content" class="hidden"></div>
+      </div>
+      <div class="outline-toolbar" id="outline-toolbar">
+        <button class="btn btn-ghost" id="btn-add-outline-chapter">+ 章节</button>
       </div>
       
       <!-- 正文显示/编辑区 -->
