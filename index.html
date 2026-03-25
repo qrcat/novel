@@ -70,8 +70,8 @@ select{cursor:pointer}
 .info-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.85rem}
 .info-row{display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;font-size:.85rem;border-bottom:1px solid var(--border)}
 .info-row:last-child{border-bottom:none}
-.info-label{color:var(--muted)}
-.info-value{color:var(--text);text-align:right}
+.info-label{color:var(--muted);min-width:3em;flex-shrink:0}
+.info-value{color:var(--text);text-align:right;flex:1}
 .config-section{display:flex;flex-direction:column;gap:.6rem}
 .control-row{display:flex;gap:.5rem;align-items:center}
 .slider-label{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap}
@@ -82,7 +82,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .char-name{color:var(--accent);font-weight:500;margin-bottom:.2rem;font-size:.88rem}
 .char-desc{color:var(--muted);font-size:.75rem;line-height:1.5}
 .toolbar{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(22,20,26,.7)}
-.outline-scroll{flex:1;overflow-y:auto;padding:1.25rem 1.5rem}
+.outline-scroll{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;min-height:0}
 .outline-empty{color:var(--muted);text-align:center;padding:3rem;font-size:.9rem;line-height:2}
 .chapter-block{margin-bottom:1.25rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px;transition:border-color .2s}
 .chapter-block:hover{border-color:rgba(201,168,76,.4)}
@@ -108,6 +108,7 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .world-rule::before{content:\25c8;color:var(--accent);flex-shrink:0}
 .novel-text{flex:1;overflow-y:auto;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;width:100%}
 .novel-container{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.outline-container{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
 .novel-content-wrapper{flex:1;overflow:auto;position:relative}
 .novel-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.8);flex-shrink:0}
 .outline-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.95);flex-shrink:0}
@@ -193,14 +194,17 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
     </div>
     <div class="content-wrapper">
       <!-- 大纲显示区 -->
-      <div class="outline-scroll" id="outline-panel">
-        <div class="outline-empty" id="outline-empty">
-          <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
+      <div class="outline-container hidden" id="outline-container">
+        <div class="outline-scroll" id="outline-panel">
+          <div class="outline-empty" id="outline-empty">
+            <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
+          </div>
+          <div id="outline-content" class="hidden"></div>
         </div>
-        <div id="outline-content" class="hidden"></div>
-      </div>
-      <div class="outline-toolbar" id="outline-toolbar">
-        <button class="btn btn-ghost" id="btn-add-outline-chapter">+ 章节</button>
+        <div class="outline-toolbar" id="outline-toolbar">
+          <button class="btn btn-ghost" id="btn-add-outline-chapter">+ 章节</button>
+          <button class="btn btn-ghost" id="btn-add-world-rule">+ 规则</button>
+        </div>
       </div>
       
       <!-- 正文显示/编辑区 -->

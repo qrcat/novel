@@ -227,38 +227,38 @@ const NovelUI = (function() {
       if (el) el.addEventListener('click', () => NovelNav.showTab(tab));
     });
 
-    // 正文按钮：显示正文内容（控制中间区域）
+    // 正文按钮：显示正文内容（隐藏 outline-container）
     const btnNovelTab = document.getElementById('btn-novel-tab');
     if (btnNovelTab) {
       btnNovelTab.addEventListener('click', () => {
-        // 显示 novel-container，隐藏 outline-panel
+        // 隐藏 outline-container，显示 novel-container
+        const outlineContainer = document.getElementById('outline-container');
         const novelContainer = document.getElementById('novel-container');
-        const outlinePanel = document.getElementById('outline-panel');
+        
+        if (outlineContainer) {
+          outlineContainer.classList.add('hidden');
+        }
         if (novelContainer) {
           novelContainer.classList.remove('hidden');
-          novelContainer.style.display = '';
-        }
-        if (outlinePanel) {
-          outlinePanel.classList.add('hidden');
-          outlinePanel.style.display = 'none';
+          novelContainer.style.display = 'flex';
         }
       });
     }
 
-    // 大纲显示按钮：切换大纲显示/隐藏
+    // 大纲显示按钮：切换回大纲视图（显示 outline-container）
     const btnShowOutline = document.getElementById('btn-show-outline');
     if (btnShowOutline) {
       btnShowOutline.addEventListener('click', () => {
-        // 显示 outline-panel，隐藏 novel-container
-        const outlinePanel = document.getElementById('outline-panel');
+        // 显示 outline-container，隐藏 novel-container
+        const outlineContainer = document.getElementById('outline-container');
         const novelContainer = document.getElementById('novel-container');
-        if (outlinePanel) {
-          outlinePanel.classList.remove('hidden');
-          outlinePanel.style.display = '';
+        
+        if (outlineContainer) {
+          outlineContainer.classList.remove('hidden');
+          outlineContainer.style.display = 'flex';
         }
         if (novelContainer) {
           novelContainer.classList.add('hidden');
-          novelContainer.style.display = 'none';
         }
       });
     }
@@ -304,6 +304,37 @@ const NovelUI = (function() {
     const btnAddOutlineChapter = document.getElementById('btn-add-outline-chapter');
     if (btnAddOutlineChapter) {
       btnAddOutlineChapter.addEventListener('click', addOutlineChapter);
+    }
+
+    // 世界观新增规则按钮
+    const btnAddWorldRule = document.getElementById('btn-add-world-rule');
+    if (btnAddWorldRule) {
+      btnAddWorldRule.addEventListener('click', () => {
+        // 使用 NovelNav.getCurrentProject() 获取当前项目
+        const project = NovelNav.getCurrentProject();
+        if (!project || !project.outline) {
+          NovelUtils.toast('请先生成大纲', 'error');
+          return;
+        }
+        
+        if (!project.outline.world_building) {
+          project.outline.world_building = {};
+        }
+        if (!project.outline.world_building.rules_of_world) {
+          project.outline.world_building.rules_of_world = [];
+        }
+        
+        // 添加一个空规则项
+        project.outline.world_building.rules_of_world.push('新规则');
+        
+        // 持久化并刷新 UI
+        NovelStorage.updateProject(project.id, { outline: project.outline });
+        // 使用 NovelNav.renderOutline 刷新大纲视图
+        if (typeof NovelNav !== 'undefined' && typeof NovelNav.renderOutline === 'function') {
+          NovelNav.renderOutline(project.outline);
+        }
+        NovelUtils.toast('已添加规则');
+      });
     }
 
     // 大纲生成按钮（会在大纲生成模块中添加）

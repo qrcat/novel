@@ -307,6 +307,20 @@ const NovelNav = (function() {
       </div>`;
     }
 
+    // 世界观（从右侧边栏移到中间区域）
+    if (outline.world_building && Object.keys(outline.world_building).length) {
+      const wb = outline.world_building;
+      mainHTML += `<div style="margin-bottom:1.25rem">
+        <div class="panel-title" style="margin-bottom:.5rem">世界观</div>
+        <div class="info-block">
+          ${wb.time_period ? `<div class="info-row"><span class="info-label">时代</span><span class="info-value editable-field" data-field="time_period">${NovelUtils.escape(wb.time_period)}</span></div>` : '<div class="info-row"><span class="info-label">时代</span><span class="info-value editable-field empty-hint" data-field="time_period" style="font-style:italic;color:var(--border)">[点击添加]</span></div>'}
+          ${wb.location ? `<div class="info-row"><span class="info-label">地点</span><span class="info-value editable-field" data-field="location">${NovelUtils.escape(wb.location)}</span></div>` : '<div class="info-row"><span class="info-label">地点</span><span class="info-value editable-field empty-hint" data-field="location" style="font-style:italic;color:var(--border)">[点击添加]</span></div>'}
+          ${wb.atmosphere ? `<div class="info-row"><span class="info-label">氛围</span><span class="info-value editable-field" data-field="atmosphere">${NovelUtils.escape(wb.atmosphere)}</span></div>` : '<div class="info-row"><span class="info-label">氛围</span><span class="info-value editable-field empty-hint" data-field="atmosphere" style="font-style:italic;color:var(--border)">[点击添加]</span></div>'}
+          ${wb.rules_of_world && wb.rules_of_world.length ? `<div class="world-rules"><strong>规则</strong>${wb.rules_of_world.map(r => `<div class="editable-field" data-field="rule_item" style="padding:.25rem 0;font-size:.82rem">• ${NovelUtils.escape(r)}</div>`).join('')}</div>` : '<div class="world-rules"><strong>规则</strong><div class="editable-field empty-hint" data-field="add_rule" style="font-style:italic;color:var(--border)">[点击添加世界规则]</div></div>'}
+        </div>
+      </div>`;
+    }
+
     // 章节列表
     if (outline.chapters && outline.chapters.length) {
       mainHTML += `<div style="margin-bottom:1.25rem">
@@ -344,18 +358,6 @@ const NovelNav = (function() {
             </div>
           </div>
         `).join('')}
-      </div>`;
-    }
-
-    // 世界观（用于右侧边栏）
-    if (outline.world_building && Object.keys(outline.world_building).length) {
-      const wb = outline.world_building;
-      sideHTML += `<div style="margin-bottom:1rem">
-        <div class="panel-title" style="margin-bottom:.5rem">世界观</div>
-        ${wb.time_period ? `<div class="world-rule"><strong>时代：</strong>${NovelUtils.escape(wb.time_period)}</div>` : ''}
-        ${wb.location ? `<div class="world-rule"><strong>地点：</strong>${NovelUtils.escape(wb.location)}</div>` : ''}
-        ${wb.atmosphere ? `<div class="world-rule"><strong>氛围：</strong>${NovelUtils.escape(wb.atmosphere)}</div>` : ''}
-        ${wb.rules_of_world && wb.rules_of_world.length ? wb.rules_of_world.map(r => `<div class="world-rule">${NovelUtils.escape(r)}</div>`).join('') : ''}
       </div>`;
     }
 
@@ -405,12 +407,26 @@ const NovelNav = (function() {
           // 创建编辑模式
           enableInlineEdit(field, chapterIdx, fieldName, currentValue);
         } else {
-          // 全局字段编辑（主题、段落剧情）
+          // 全局字段编辑（主题、段落剧情、世界观）
           const fieldName = field.getAttribute('data-field');
-          const currentValue = field.classList.contains('empty-hint') || field.textContent === '[点击添加核心主旨]' || field.textContent === '[点击添加目的]' || field.textContent === '[点击添加段落剧情]' ? '' : field.textContent.trim();
+          const isEmptyHint = field.classList.contains('empty-hint');
+          const emptyHints = ['[点击添加核心主旨]', '[点击添加目的]', '[点击添加段落剧情]', '[点击添加]', '[点击添加世界规则]'];
           
-          // 创建编辑模式
-          enableGlobalFieldEdit(field, fieldName, currentValue);
+          // 提取纯内容值，过滤掉特殊符号和提示文字
+          let currentValue = '';
+          if (!isEmptyHint && !emptyHints.some(hint => field.textContent.includes(hint))) {
+            // 对于规则项，需要移除"• "前缀
+            const text = field.textContent.trim();
+            currentValue = text.startsWith('•') ? text.substring(1).trim() : text;
+          }
+          
+          // 特殊处理"添加世界规则"
+          if (fieldName === 'add_rule') {
+            addWorldRule(project);
+          } else {
+            // 创建编辑模式
+            enableGlobalFieldEdit(field, fieldName, currentValue);
+          }
         }
       });
     });
@@ -555,6 +571,45 @@ const NovelNav = (function() {
         outline.plot_paragraph = newValue;
         saveAndRefresh(project);
       });
+    } else if (fieldName === 'time_period' || fieldName === 'location' || fieldName === 'atmosphere') {
+      // 世界观字段使用单行输入框（类似 theme.theme）
+      if (!outline.world_building) outline.world_building = {};
+      
+      editor = document.createElement('input');
+      editor.type = 'text';
+      editor.value = currentValue;
+      editor.placeholder = fieldName === 'time_period' ? '添加时代背景...' : 
+                         fieldName === 'location' ? '添加故事地点...' : 
+                         '添加氛围基调...';
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.85rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        outline.world_building[fieldName] = newValue;
+        saveAndRefresh(project);
+      });
+    } else if (fieldName === 'rule_item') {
+      // 世界规则列表项编辑
+      if (!outline.world_building) outline.world_building = {};
+      if (!outline.world_building.rules_of_world) outline.world_building.rules_of_world = [];
+      
+      // 找到当前规则项的索引
+      const ruleIndex = fieldElement.textContent.replace('• ', '').trim();
+      const index = outline.world_building.rules_of_world.indexOf(ruleIndex);
+      
+      editor = document.createElement('input');
+      editor.type = 'text';
+      editor.value = currentValue;
+      editor.placeholder = '添加世界规则...';
+      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.82rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
+      
+      editor.addEventListener('blur', () => {
+        const newValue = editor.value.trim();
+        if (index >= 0) {
+          outline.world_building.rules_of_world[index] = newValue;
+        }
+        saveAndRefresh(project);
+      });
     }
 
     // 处理 Enter 键保存（多行文本需要 Ctrl+Enter）
@@ -590,6 +645,26 @@ const NovelNav = (function() {
     NovelStorage.updateProject(project.id, { outline: project.outline });
     renderOutline(project.outline);
     NovelUtils.toast('已保存');
+  }
+
+  /**
+   * 添加世界规则
+   */
+  function addWorldRule(project) {
+    if (!project || !project.outline) return;
+    
+    if (!project.outline.world_building) {
+      project.outline.world_building = {};
+    }
+    if (!project.outline.world_building.rules_of_world) {
+      project.outline.world_building.rules_of_world = [];
+    }
+    
+    // 添加一个空规则项
+    project.outline.world_building.rules_of_world.push('新规则');
+    
+    // 持久化并刷新
+    saveAndRefresh(project);
   }
 
   /**
@@ -719,6 +794,7 @@ const NovelNav = (function() {
     saveCurrentProject,
     renderProjectList,
     applyProjectToUI,
+    renderOutline,
     clearOutput,
     getActiveSettings
   };
