@@ -165,6 +165,8 @@ const NovelUI = (function() {
     const urlMap = {
       dashscope: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       openai: 'https://api.openai.com/v1',
+      deepseek: 'https://api.deepseek.com',
+      claude: 'https://api.anthropic.com/v1',
       custom: ''
     };
 

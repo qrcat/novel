@@ -29,6 +29,17 @@ const NovelProviders = (function() {
       defaultModel: 'gpt-4o',
       docUrl: 'https://platform.openai.com/docs/api-reference'
     },
+    deepseek: {
+      id: 'deepseek',
+      name: '🐋 DeepSeek',
+      baseUrl: 'https://api.deepseek.com',
+      models: [
+        { id: 'deepseek-chat', name: 'DeepSeek Chat (推荐)' },
+        { id: 'deepseek-coder', name: 'DeepSeek Coder (代码)' }
+      ],
+      defaultModel: 'deepseek-chat',
+      docUrl: 'https://platform.deepseek.com/api-docs/'
+    },
     claude: {
       id: 'claude',
       name: '🎯 Anthropic Claude',

@@ -21,6 +21,7 @@ const NovelStorage = (function() {
   const DEFAULT_PROVIDERS = {
     dashscope: { apiKey: '', model: 'qwen-plus' },
     openai: { apiKey: '', model: 'gpt-4o' },
+    deepseek: { apiKey: '', model: 'deepseek-chat' },
     claude: { apiKey: '', model: 'claude-opus' },
     custom: { apiKey: '', baseUrl: '', model: 'custom-model' }
   };
