@@ -272,6 +272,82 @@ const NovelUI = (function() {
       });
     }
 
+    // 右侧面板 Tab 切换
+    const tabOutput = document.getElementById('tab-output');
+    const tabCharacters = document.getElementById('tab-characters');
+    const panelOutput = document.getElementById('panel-output');
+    const panelCharacters = document.getElementById('panel-characters');
+    const tabOutline = document.getElementById('tab-outline');
+    const panelOutline = document.getElementById('panel-outline');
+
+    if (tabOutput && tabCharacters && panelOutput && panelCharacters) {
+      tabOutput.addEventListener('click', () => {
+        tabOutput.classList.add('active');
+        tabCharacters.classList.remove('active');
+        if (tabOutline) tabOutline.classList.remove('active');
+        panelOutput.classList.remove('hidden');
+        panelCharacters.classList.add('hidden');
+        if (panelOutline) panelOutline.classList.add('hidden');
+      });
+
+      tabCharacters.addEventListener('click', () => {
+        tabCharacters.classList.add('active');
+        tabOutput.classList.remove('active');
+        if (tabOutline) tabOutline.classList.remove('active');
+        panelCharacters.classList.remove('hidden');
+        panelOutput.classList.add('hidden');
+        if (panelOutline) panelOutline.classList.add('hidden');
+        // 切换到角色 Tab 时渲染角色列表
+        renderCharactersList();
+      });
+
+      // 大纲 Tab 切换（如果存在）
+      if (tabOutline && panelOutline) {
+        tabOutline.addEventListener('click', () => {
+          tabOutline.classList.add('active');
+          tabOutput.classList.remove('active');
+          tabCharacters.classList.remove('active');
+          panelOutline.classList.remove('hidden');
+          panelOutput.classList.add('hidden');
+          panelCharacters.classList.add('hidden');
+          // 切换到大纲 Tab 时渲染大纲内容
+          const project = NovelNav.getCurrentProject();
+          if (project && project.outline) {
+            NovelNav.renderOutline(project.outline);
+          }
+        });
+      }
+    }
+
+    // 角色列表操作按钮（动态绑定）
+    function handleCharacterAction(e) {
+      const target = e.target;
+      const characterItem = target.closest('.character-item');
+      if (!characterItem) return;
+
+      const index = parseInt(characterItem.dataset.index);
+      
+      if (target.classList.contains('btn-edit-char')) {
+        editCharacter(index);
+      } else if (target.classList.contains('btn-delete-char')) {
+        deleteCharacter(index);
+      }
+    }
+
+    // 为角色列表容器添加事件委托
+    const charactersList = document.getElementById('characters-list');
+    if (charactersList) {
+      charactersList.addEventListener('click', handleCharacterAction);
+    }
+
+    // 右侧面板"添加角色"按钮
+    const btnAddCharacterPanel = document.getElementById('btn-add-character-panel');
+    if (btnAddCharacterPanel) {
+      btnAddCharacterPanel.addEventListener('click', () => {
+        showAddCharModal();
+      });
+    }
+
     // 正文编辑按钮
     const btnEditNovel = document.getElementById('btn-edit-novel');
     if (btnEditNovel) {
@@ -364,12 +440,6 @@ const NovelUI = (function() {
     const sTemp = document.getElementById('s-temp');
     if (sTemp) {
       sTemp.addEventListener('input', (e) => updateTemperatureLabel(e.target.value));
-    }
-
-    // 角色新增按钮
-    const btnAddChar = document.getElementById('btn-add-char');
-    if (btnAddChar) {
-      btnAddChar.addEventListener('click', showAddCharModal);
     }
 
     console.log('[NovelAgents] UI events bound');
@@ -830,126 +900,76 @@ const NovelUI = (function() {
   }
 
   /**
-   * 将文本解析为大纲对象
+   * 解析文本到大纲结构
    */
   function parseTextToOutline(text) {
     const outline = {
       theme: {},
+      plot_paragraph: '',
+      structure: { total_chapters: 0, main_plot: '' },
       chapters: [],
       character_arcs: [],
       world_building: {}
     };
     
-    if (!text) return outline;
-    
-    const lines = text.split('\n');
-    let currentSection = '';
-    let currentChapter = null;
-    let currentArc = null;
-    
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-      
-      // 检测段落标记
-      if (trimmed.startsWith('【')) {
-        if (trimmed.includes('核心主旨')) {
-          currentSection = 'theme';
-        } else if (trimmed.includes('段落剧情')) {
-          currentSection = 'plot';
-        } else if (trimmed.includes('章节列表')) {
-          currentSection = 'chapters';
-        } else if (trimmed.includes('角色弧线')) {
-          currentSection = 'arcs';
-        } else if (trimmed.includes('世界观')) {
-          currentSection = 'world';
-        }
-        return;
-      }
-      
-      // 处理主题部分
-      if (currentSection === 'theme') {
-        if (trimmed.startsWith('目的：')) {
-          outline.theme.purpose = trimmed.replace('目的：', '');
-        } else if (!trimmed.startsWith('[')) {
-          outline.theme.theme = trimmed;
-        }
-      }
-      
-      // 处理段落剧情
-      if (currentSection === 'plot' && !trimmed.startsWith('[')) {
-        outline.plot_paragraph = (outline.plot_paragraph || '') + trimmed + '\n';
-      }
-      
-      // 处理章节
-      if (currentSection === 'chapters') {
-        if (trimmed.match(/^第\d+ 章/)) {
-          // 新章节开始
-          if (currentChapter) {
-            outline.chapters.push(currentChapter);
-          }
-          const match = trimmed.match(/^第(\d+) 章\s*(.*)/);
-          currentChapter = {
-            chapter_number: parseInt(match[1]),
-            chapter_title: match[2] || ''
-          };
-        } else if (currentChapter) {
-          if (trimmed.startsWith('概括：')) {
-            currentChapter.one_sentence = trimmed.replace('概括：', '');
-          } else if (trimmed.startsWith('详情：')) {
-            currentChapter.expanded_paragraph = trimmed.replace('详情：', '');
-          } else if (trimmed.startsWith('关键事件：')) {
-            currentChapter.key_events = trimmed.replace('关键事件：', '').split(/[,,]/);
-          }
-        }
-      }
-      
-      // 处理角色弧线
-      if (currentSection === 'arcs') {
-        if (trimmed.startsWith('初始：')) {
-          if (currentArc) currentArc.initial_state = trimmed.replace('初始：', '');
-        } else if (trimmed.startsWith('终态：')) {
-          if (currentArc) currentArc.final_state = trimmed.replace('终态：', '');
-        } else if (!trimmed.startsWith('[') && !trimmed.startsWith('初') && !trimmed.startsWith('终')) {
-          // 角色名
-          if (currentArc) outline.character_arcs.push(currentArc);
-          currentArc = { character_name: trimmed };
-        }
-      }
-      
-      // 处理世界观
-      if (currentSection === 'world') {
-        if (trimmed.startsWith('时代：')) {
-          outline.world_building.time_period = trimmed.replace('时代：', '');
-        } else if (trimmed.startsWith('地点：')) {
-          outline.world_building.location = trimmed.replace('地点：', '');
-        } else if (trimmed.startsWith('氛围：')) {
-          outline.world_building.atmosphere = trimmed.replace('氛围：', '');
-        } else if (trimmed.startsWith('规则：')) {
-          outline.world_building.rules_of_world = [];
-        } else if (trimmed.startsWith('•')) {
-          if (!outline.world_building.rules_of_world) {
-            outline.world_building.rules_of_world = [];
-          }
-          outline.world_building.rules_of_world.push(trimmed.substring(2));
-        }
-      }
-    });
-    
-    // 添加最后一个章节和角色弧线
-    if (currentChapter) {
-      outline.chapters.push(currentChapter);
-    }
-    if (currentArc) {
-      outline.character_arcs.push(currentArc);
-    }
-    
-    // 清理空行
-    if (outline.plot_paragraph) {
-      outline.plot_paragraph = outline.plot_paragraph.trim();
-    }
-    
     return outline;
+  }
+
+  /**
+   * 渲染右侧面板的角色列表
+   */
+  function renderCharactersList() {
+    const project = NovelNav.getCurrentProject();
+    const container = document.getElementById('characters-list');
+    
+    if (!container) return;
+    
+    // 如果没有项目或没有角色，显示空状态
+    if (!project || !project.characters || project.characters.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center;color:var(--muted);padding:2rem;font-size:.85rem">
+          <p>暂无角色</p>
+          <p style="margin-top:.5rem">点击右下角"+"按钮添加第一个角色</p>
+        </div>
+      `;
+      return;
+    }
+
+    // 渲染角色列表
+    const html = project.characters.map((char, index) => {
+      const name = char.character_name || char.name || '未命名';
+      const personality = char.personality || char.initial_state || '';
+      const roleInStory = char.role_in_story || '配角';
+      
+      return `
+        <div class="character-item" data-index="${index}">
+          <div class="character-header">
+            <div class="character-name">${escapeHtml(name)}</div>
+            <div class="character-actions">
+              <button class="btn btn-ghost btn-edit-char" title="编辑">✎</button>
+              <button class="btn btn-ghost btn-delete-char danger" title="删除">🗑</button>
+            </div>
+          </div>
+          ${personality ? `<div class="character-desc">${escapeHtml(personality)}</div>` : ''}
+          <div class="character-meta">
+            <span class="character-tag">${escapeHtml(roleInStory)}</span>
+            ${char.key_changes && char.key_changes.length > 0 ? `<span class="character-tag">成长轨迹</span>` : ''}
+            ${char.conflicts && char.conflicts.length > 0 ? `<span class="character-tag">内心冲突</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = html;
+  }
+
+  /**
+   * HTML 转义辅助函数
+   */
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   return {
@@ -978,6 +998,7 @@ const NovelUI = (function() {
     editOutlineChapter,
     deleteOutlineChapter,
     formatOutlineToText,
-    parseTextToOutline
+    parseTextToOutline,
+    renderCharactersList
   };
 })();

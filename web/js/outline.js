@@ -303,17 +303,56 @@ const NovelOutlineGen = (function() {
 
     NovelProject.updateOutline(project.id, outline);
     
-    // 更新角色列表
+    // 【修复】通过智能匹配更新角色，避免重复
     if (data.arcsData && data.arcsData.length) {
-      (data.arcsData || []).forEach(arc => {
-        NovelProject.addCharacter(project.id, {
-          character_name: arc.character_name,
-          name: arc.character_name,
-          initial_state: arc.initial_state,
-          final_state: arc.final_state,
-          key_changes: arc.key_changes || [],
-          conflicts: arc.conflicts || []
-        });
+      NovelUtils.log('开始处理角色弧线...', 'phase');
+      
+      // 获取当前项目中的角色列表
+      const currentProject = NovelNav.getCurrentProject();
+      const existingCharacters = currentProject.characters || [];
+      
+      // 遍历角色弧线数据
+      (data.arcsData || []).forEach((arc, index) => {
+        setTimeout(() => {
+          // 智能匹配现有角色（基于名字包含关系）
+          const matchedChar = existingCharacters.find(char => {
+            const charName = char.character_name || char.name;
+            const arcName = arc.character_name;
+            // 精确匹配或包含匹配
+            return charName === arcName || 
+                   charName.includes(arcName) || 
+                   arcName.includes(charName);
+          });
+          
+          if (matchedChar) {
+            // 更新现有角色
+            NovelUtils.log(`更新角色「${arc.character_name}」...`, 'info');
+            NovelProject.updateCharacter(currentProject.id, matchedChar.id, {
+              initial_state: arc.initial_state,
+              final_state: arc.final_state,
+              key_changes: arc.key_changes || [],
+              conflicts: arc.conflicts || [],
+              personality: arc.personality || matchedChar.personality,
+              background: arc.background || matchedChar.background,
+              role_in_story: arc.role_in_story || matchedChar.role_in_story
+            });
+          } else {
+            // 创建新角色
+            NovelUtils.log(`创建新角色「${arc.character_name}」...`, 'info');
+            NovelProject.addCharacter(currentProject.id, {
+              character_name: arc.character_name,
+              name: arc.character_name,
+              initial_state: arc.initial_state,
+              final_state: arc.final_state,
+              key_changes: arc.key_changes || [],
+              conflicts: arc.conflicts || [],
+              personality: arc.personality || '',
+              background: arc.background || '',
+              role_in_story: arc.role_in_story || '配角',
+              enabled: true
+            });
+          }
+        }, index * 100); // 错开处理时间，避免并发冲突
       });
     }
 

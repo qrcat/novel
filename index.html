@@ -77,10 +77,15 @@ select{cursor:pointer}
 .slider-label{font-size:.75rem;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap}
 input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;border:none;padding:0;accent-color:var(--accent)}
 .char-list{display:flex;flex-direction:column;gap:.4rem}
-.char-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.65rem;font-size:.85rem;transition:border-color .15s}
-.char-card:hover{border-color:var(--accent)}
-.char-name{color:var(--accent);font-weight:500;margin-bottom:.2rem;font-size:.88rem}
-.char-desc{color:var(--muted);font-size:.75rem;line-height:1.5}
+.characters-list{display:flex;flex-direction:column;gap:.6rem;width:100%}
+.character-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem;transition:border-color .15s}
+.character-item:hover{border-color:var(--accent)}
+.character-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem}
+.character-name{color:var(--accent);font-weight:500;font-size:.9rem}
+.character-actions{display:flex;gap:.35rem}
+.character-desc{color:var(--muted);font-size:.78rem;line-height:1.6}
+.character-meta{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.character-tag{background:var(--surface2);padding:.15rem .45rem;border-radius:4px;font-size:.7rem;color:var(--muted);font-family:'DM Mono',monospace}
 .toolbar{display:flex;align-items:center;gap:.75rem;padding:.65rem 1.5rem;border-bottom:1px solid var(--border);background:rgba(22,20,26,.7)}
 .outline-scroll{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;min-height:0}
 .outline-empty{color:var(--muted);text-align:center;padding:3rem;font-size:.9rem;line-height:2}
@@ -172,15 +177,6 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
         <div class="info-row"><span class="info-label">状态</span><span class="info-value" id="info-status">-</span></div>
       </div>
     </div>
-    <div>
-      <div class="panel-title" style="display:flex;justify-content:space-between;align-items:center">
-        <span>角色列表</span>
-        <button class="btn btn-ghost" id="btn-add-char" style="padding:.2rem .5rem;font-size:.7rem">+ 新增</button>
-      </div>
-      <div class="char-list" id="char-list">
-        <div class="info-block" style="text-align:center;color:var(--muted);font-size:.85rem">生成大纲后显示</div>
-      </div>
-    </div>
   </aside>
 
   <section class="main-area">
@@ -194,12 +190,12 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
     </div>
     <div class="content-wrapper">
       <!-- 大纲显示区 -->
-      <div class="outline-container hidden" id="outline-container">
+      <div class="outline-container" id="outline-container">
         <div class="outline-scroll" id="outline-panel">
           <div class="outline-empty" id="outline-empty">
             <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
           </div>
-          <div id="outline-content" class="hidden"></div>
+          <div id="outline-content"></div>
         </div>
         <div class="outline-toolbar" id="outline-toolbar">
           <button class="btn btn-ghost" id="btn-add-outline-chapter">+ 章节</button>
@@ -225,10 +221,17 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
   <aside class="right-panel">
     <div class="panel-tabs">
       <div class="tab active" id="tab-output">输出</div>
-      <div class="tab" id="tab-outline">大纲</div>
+      <div class="tab" id="tab-characters">角色</div>
     </div>
     <div class="panel-content" id="panel-output">
       <div class="output-box" id="output-box"></div>
+    </div>
+    <div class="panel-content hidden" id="panel-characters">
+      <div class="characters-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+        <span style="font-size:.85rem;color:var(--muted);font-family:'DM Mono',monospace">项目角色</span>
+        <button class="btn btn-primary" id="btn-add-character-panel" style="padding:.4rem .75rem;font-size:.75rem">+ 添加角色</button>
+      </div>
+      <div class="characters-list" id="characters-list"></div>
     </div>
     <div class="panel-content hidden" id="panel-outline">
       <div id="outline-sidebar-content" style="font-size:.85rem;line-height:1.8"></div>

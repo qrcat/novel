@@ -227,6 +227,10 @@ const NovelNav = (function() {
     if (infoChapter) infoChapter.textContent = '第 ' + (currentProject.writing_chapter || 1) + ' 章';
 
     // 检查大纲状态
+    const outlineContainer = document.getElementById('outline-container');
+    const outlineEmpty = document.getElementById('outline-empty');
+    const outlineContent = document.getElementById('outline-content');
+    
     if (currentProject.outline && Object.keys(currentProject.outline).length) {
       if (infoStatus) infoStatus.textContent = '大纲就绪';
       document.getElementById('btn-round')?.removeAttribute('disabled');
@@ -240,6 +244,14 @@ const NovelNav = (function() {
         btnOutline.style.cursor = 'not-allowed';
       }
       
+      // 显示大纲容器和内容
+      if (outlineContainer) {
+        outlineContainer.classList.remove('hidden');
+        outlineContainer.style.display = 'flex';
+      }
+      if (outlineEmpty) outlineEmpty.classList.add('hidden');
+      if (outlineContent) outlineContent.classList.remove('hidden');
+      
       renderOutline(currentProject.outline);
     } else {
       if (infoStatus) infoStatus.textContent = '等待大纲';
@@ -249,10 +261,22 @@ const NovelNav = (function() {
       // 没有大纲，隐藏 + 章节按钮
       const btnAddOutlineChapter = document.getElementById('btn-add-outline-chapter');
       if (btnAddOutlineChapter) btnAddOutlineChapter.style.display = 'none';
+      
+      // 隐藏大纲容器，显示空状态
+      if (outlineContainer) {
+        outlineContainer.classList.add('hidden');
+      }
+      if (outlineEmpty) outlineEmpty.classList.remove('hidden');
+      if (outlineContent) outlineContent.classList.add('hidden');
     }
 
     // 渲染角色列表（无论是否为空都调用）
     renderCharListPreview(currentProject.characters || []);
+    
+    // 同时渲染右侧面板的角色列表
+    if (typeof NovelUI !== 'undefined' && typeof NovelUI.renderCharactersList === 'function') {
+      NovelUI.renderCharactersList();
+    }
 
     // 渲染小说文本
     if (currentProject.novel_text) {
