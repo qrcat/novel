@@ -6,12 +6,210 @@ const NovelWriter = (function() {
   let isGenerating = false;
 
   /**
-   * 智能判断当前应该写第几章
-   * @param {Object} project - 项目对象
-   * @returns {Promise<Number>} - 返回应该生成的章节号（从 1 开始）
+   * AI Agent：分析本章涉及的角色详情
+   * @param {Object} outline - 大纲对象（包含全量角色档案）
+   * @param {Object} chapter - 章节对象（包含角色引用）
+   * @param {Object} settings - API 设置
+   * @returns {Promise<Array>} - 返回本章涉及角色的详细信息数组
    */
-  async function detectCurrentChapter(project) {
-    const outline = project.outline;
+  async function analyzeCharactersAgent(outline, chapter, settings) {
+    NovelUtils.log('分析本章涉及的角色...', 'phase');
+    
+    // 从项目级别的角色档案中读取（而非 outline.characters）
+    const currentProject = NovelNav.getCurrentProject();
+    const allCharacters = Array.isArray(currentProject?.characters) ? currentProject.characters : [];
+    
+    // 如果没有角色档案，使用 Fallback
+    if (allCharacters.length === 0) {
+      NovelUtils.log('项目中没有角色档案，使用本地提取方案', 'warning');
+      return fallbackLocalExtraction({ characters: [] }, chapter);
+    }
+    
+    // 构建完整的角色档案列表（JSON 格式）
+    const charactersJson = JSON.stringify(allCharacters, null, 2);
+    
+    // 构建章节信息
+    const chapterInfo = {
+      chapter_number: chapter.chapter_number,
+      chapter_title: chapter.chapter_title,
+      one_sentence: chapter.one_sentence,
+      expanded_paragraph: chapter.expanded_paragraph,
+      key_events: Array.isArray(chapter.key_events) ? chapter.key_events : [],
+      characters_involved: chapter.characters_involved || [],
+      characters: chapter.characters || [],
+      character_list: chapter.character_list || [],
+      appearing_characters: chapter.appearing_characters || []
+    };
+    
+    // System Prompt：定义 Agent 职责
+    const systemPrompt = `你是一位专业的小说编辑和角色分析师。你的任务是根据提供的完整角色档案和当前章节的大纲信息，精准识别本章涉及的所有角色。
+
+分析规则：
+1. 首先检查章节对象中明确指定的角色字段（characters_involved、characters、character_list、appearing_characters）
+2. 如果这些字段为空，则基于章节描述（one_sentence、expanded_paragraph、key_events）与角色档案的姓名进行文本匹配
+3. 只提取确实会在本章出场的角色，不要遗漏也不要添加无关角色
+4. **只返回角色的 ID 列表**，无需重复输出角色详情`;
+
+    // User Prompt：提供完整上下文
+    const userPrompt = `【全量角色档案】
+${charactersJson}
+
+【当前章节信息】
+${JSON.stringify(chapterInfo, null, 2)}
+
+请分析本章涉及哪些角色，并返回以下 JSON 格式的结果（**只包含 ID 数组**）：
+{
+  "involved_character_ids": ["角色 ID1", "角色 ID2"]
+}
+
+如果没有特定角色出场，返回空数组：{"involved_character_ids": []}`;
+    console.log('[Calling LLM]', systemPrompt, userPrompt);
+    try {
+      // 调用 LLM API 进行角色分析
+      const response = await NovelAPI.call(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        null,
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        0.0,  // 低温度确保分析准确性
+        2000, // maxTokens，足够返回 JSON
+        { type: 'text' }
+      );
+
+      const content = response.choices[0].message.content || '';
+      
+      console.log('AI Agent 输出:', content);
+      
+      // 解析 AI 返回的 JSON 结果（兼容 Markdown 代码块格式）
+      let result;
+      try {
+        // 清理可能的 Markdown 代码块标记
+        let cleanContent = content.trim();
+        
+        // 移除开头的 ```json 或 ```
+        cleanContent = cleanContent.replace(/^```(?:json)?\s*\n?/, '');
+        
+        // 移除结尾的 ```
+        cleanContent = cleanContent.replace(/\n?```\s*$/, '');
+        
+        cleanContent = cleanContent.trim();
+        
+        console.log('清理后的内容:', cleanContent.substring(0, 200));
+        
+        result = JSON.parse(cleanContent);
+      } catch (parseError) {
+        NovelUtils.log('角色 Agent 返回格式解析失败，使用备用方案', 'warning');
+        console.error('解析错误:', parseError, '原始内容:', content);
+        
+        // Fallback：本地提取方案
+        return fallbackLocalExtraction({ characters: allCharacters }, chapter);
+      }
+      
+      // 从 ID 列表中提取完整的角色档案信息
+      const involvedIds = Array.isArray(result.involved_character_ids) ? result.involved_character_ids : [];
+      
+      const involvedCharacters = involvedIds.map(id => {
+        // 根据 ID 查找对应的完整角色档案
+        const char = allCharacters.find(c => c.id === id);
+        if (!char) return null;
+        
+        // 返回标准化格式的角色详情
+        return {
+          name: char.name || char.character_name,
+          personality: char.personality || '未设定',
+          background: char.background || '无特殊背景',
+          role_in_story: char.role_in_story || '未明确',
+          initial_state: char.initial_state || '无',
+          final_state: char.final_state || '无',
+          key_changes: Array.isArray(char.key_changes) ? char.key_changes.join(';') : (char.key_changes || '无'),
+          conflicts: Array.isArray(char.conflicts) ? char.conflicts.join(';') : (char.conflicts || '无')
+        };
+      }).filter(Boolean); // 过滤掉未找到的角色
+      
+      NovelUtils.log(`AI Agent 分析出本章涉及 ${involvedCharacters.length} 个角色`, 'success');
+      console.log('角色分析结果:', involvedCharacters);
+      
+      return involvedCharacters;
+      
+    } catch (error) {
+      NovelUtils.log('AI Agent 角色分析失败，使用本地提取方案', 'error');
+      console.error('角色 Agent 调用失败:', error);
+      
+      // Fallback：本地提取方案
+      return fallbackLocalExtraction({ characters: allCharacters }, chapter);
+    }
+  }
+
+  /**
+   * 备用方案：本地角色提取（当 AI Agent 失败时使用）
+   */
+  function fallbackLocalExtraction(outline, chapter) {
+    // 收集本章涉及的角色名称（兼容多种字段名）
+    const involvedNames = new Set();
+    if (Array.isArray(chapter.characters_involved)) {
+      involvedNames.add(...chapter.characters_involved);
+    }
+    if (Array.isArray(chapter.characters)) {
+      involvedNames.add(...chapter.characters);
+    }
+    if (Array.isArray(chapter.character_list)) {
+      involvedNames.add(...chapter.character_list);
+    }
+    if (Array.isArray(chapter.appearing_characters)) {
+      involvedNames.add(...chapter.appearing_characters);
+    }
+    
+    // 如果没有明确指定角色，尝试从关键事件和剧情描述中提取
+    if (involvedNames.size === 0) {
+      const allCharacters = Array.isArray(outline.characters) ? outline.characters : [];
+      const characterNames = allCharacters.map(char => char.name || char.character_name).filter(Boolean);
+      
+      // 简单匹配：检查章节描述中是否包含角色名
+      const chapterText = `${chapter.one_sentence || ''} ${chapter.expanded_paragraph || ''} ${Array.isArray(chapter.key_events) ? chapter.key_events.join(' ') : ''}`;
+      
+      characterNames.forEach(name => {
+        if (chapterText.includes(name)) {
+          involvedNames.add(name);
+        }
+      });
+    }
+    
+    // 从完整角色档案中提取详细信息
+    const involvedCharacters = [];
+    const allCharacters = Array.isArray(outline.characters) ? outline.characters : [];
+    
+    allCharacters.forEach(char => {
+      const charName = char.name || char.character_name;
+      if (charName && involvedNames.has(charName)) {
+        involvedCharacters.push({
+          name: charName,
+          personality: char.personality || '未设定',
+          background: char.background || '无特殊背景',
+          role_in_story: char.role_in_story || '未明确',
+          initial_state: char.initial_state || '无',
+          final_state: char.final_state || '无',
+          key_changes: Array.isArray(char.key_changes) ? char.key_changes.join(';') : (char.key_changes || '无'),
+          conflicts: Array.isArray(char.conflicts) ? char.conflicts.join(';') : (char.conflicts || '无')
+        });
+      }
+    });
+    
+    NovelUtils.log(`本地提取出本章涉及 ${involvedCharacters.length} 个角色`, 'phase');
+    
+    return involvedCharacters;
+  }
+
+  /**
+   * 通过特殊标记智能判断当前应该写第几章
+   * @param {Object} project - 项目对象
+   * @returns {Number} - 返回应该生成的章节号（从 1 开始）
+   */
+  function detectCurrentChapter(project) {
     const currentNovelText = project.novel_text || '';
     
     // 如果没有正文内容，从第 1 章开始
@@ -19,65 +217,20 @@ const NovelWriter = (function() {
       return 1;
     }
     
-    // 如果有大纲但没有正文，尝试通过 AI 判断
-    const settings = NovelNav.getActiveSettings();
-    if (!settings.apiKey) {
-      // 没有 API Key，使用简单的章节匹配
-      const chapters = currentNovelText.match(/^第\s*\d+\s*章/gm) || [];
-      return chapters.length + 1;
-    }
+    // 使用 EndOfChapter 标记统计已完成的章节数（兼容两种格式）
+    // 格式 1: [EndOfChapter:1] （标准格式）
+    // 格式 2: [EndOfChapter] （简化格式）
+    const endMarkers = (currentNovelText.match(/\[EndOfChapter(?::\d+)?\]/g) || []);
+    const completedChapters = endMarkers.length;
     
-    try {
-      // 截取最后 500 字作为上下文（增加上下文长度以提高判断准确性）
-      const contextText = currentNovelText.length > 500 
-        ? currentNovelText.substring(currentNovelText.length - 500)
-        : currentNovelText;
-      
-      // 构建章节信息摘要
-      const chapterSummaries = outline.chapters.map((ch, idx) => 
-        `第${idx + 1}章：${ch.one_sentence || ch.chapter_title || ''}`
-      ).join('\n');
-      
-      NovelUtils.log('AI 分析当前章节进度...', 'phase');
-      
-      const response = await NovelAPI.call(
-        [
-          { 
-            role: 'system', 
-            content: '你是一个小说章节分析助手。根据已生成的正文内容和大纲章节概要，判断当前已经写到了第几章。只返回一个数字。' 
-          },
-          { 
-            role: 'user', 
-            content: `小说标题：${project.title}\n类型：${project.genre}\n\n大纲章节概要：\n${chapterSummaries}\n\n已生成的正文内容（最后 500 字）：\n${contextText}\n\n请判断当前已经完成了多少章？接下来应该写第几章？只回答一个数字。`
-          }
-        ],
-        null,
-        settings.model,
-        settings.apiKey,
-        settings.baseUrl,
-        settings.provider,
-        0.3,
-        50
-      );
-      
-      const result = response.choices[0].message.content.trim();
-      const detectedChapter = parseInt(result.replace(/\D/g, ''));
-      
-      if (!isNaN(detectedChapter) && detectedChapter > 0 && detectedChapter <= outline.chapters.length) {
-        NovelUtils.log(`AI 判断：当前应写第 ${detectedChapter} 章`, 'success');
-        return detectedChapter;
-      }
-      
-      // AI 判断失败，降级到简单匹配
-      const chapters = currentNovelText.match(/^第\s*\d+\s*章/gm) || [];
-      NovelUtils.log(`降级：检测到 ${chapters.length} 章，下一章是第 ${chapters.length + 1} 章`, 'phase');
-      return chapters.length + 1;
-      
-    } catch (err) {
-      NovelUtils.log('AI 判断失败，使用默认逻辑：' + err.message, 'error');
-      const chapters = currentNovelText.match(/^第\s*\d+\s*章/gm) || [];
-      return chapters.length + 1;
-    }
+    // 下一章是已完成章节数 + 1
+    const nextChapter = completedChapters + 1;
+    
+    NovelUtils.log(`检测到 ${completedChapters} 个完整章节，接下来应该写第 ${nextChapter} 章`, 'phase');
+    console.log('当前小说内容:', currentNovelText.substring(0, 500));
+    console.log('EndOfChapter 匹配结果:', endMarkers);
+    
+    return nextChapter;
   }
 
   /**
@@ -141,106 +294,145 @@ const NovelWriter = (function() {
     let progressStep = Math.floor(90 / targetChapters.length);
     let currentProgress = 5;
 
-    return Promise.resolve()
-      .then(() => {
-        // 逐章生成
-        return targetChapters.reduce((chain, chapter, index) => {
-          return chain.then(() => {
-            // 强制重新计算章节编号，确保从 startChapter 开始连续
-            const actualChapterNumber = startChapter + index;
-            
-            // 创建新的章节对象，使用正确的章节编号
-            const chapterWithCorrectNumber = {
-              ...chapter,
-              chapter_number: actualChapterNumber
-            };
-            
-            return generateChapterContent(
-              title, genre, initialPrompt, outline, chapterWithCorrectNumber, novelContent, settings
-            ).then(content => {
-              novelContent += (novelContent ? '\n\n' : '') + content;
-              currentProgress += progressStep;
-              NovelUtils.setProgress(currentProgress);
-              NovelUtils.log(`第${actualChapterNumber}章「${chapter.chapter_title}」完成`, 'success');
-            });
-          });
-        }, Promise.resolve());
-      })
-      .then(() => {
-        // 保存生成的内容
-        NovelUtils.setProgress(95);
-        NovelStorage.updateProject(project.id, {
-          novel_text: novelContent,
-          writing_chapter: startChapter + targetChapters.length - 1
-        });
+    try {
+      // 逐章生成
+      for (let index = 0; index < targetChapters.length; index++) {
+        const chapter = targetChapters[index];
         
-        // 重新加载最新的项目数据
-        const updatedProject = NovelStorage.getProjectById(project.id);
-        NovelNav.setCurrentProject(updatedProject);
+        // 强制重新计算章节编号，确保从 startChapter 开始连续
+        const actualChapterNumber = startChapter + index;
         
-        // 更新 UI 并切换到输出 Tab
-        NovelNav.applyProjectToUI();
-        NovelNav.showTab('output');
+        // 创建新的章节对象，使用正确的章节编号
+        const chapterWithCorrectNumber = {
+          ...chapter,
+          chapter_number: actualChapterNumber
+        };
         
-        // 切换到正文视图（显示 novel-container，隐藏 outline-container）
-        const outlineContainer = document.getElementById('outline-container');
-        const novelContainer = document.getElementById('novel-container');
-        if (outlineContainer) {
-          outlineContainer.classList.add('hidden');
-        }
-        if (novelContainer) {
-          novelContainer.classList.remove('hidden');
-          novelContainer.style.display = 'flex';
-        }
+        const content = await generateChapterContent(
+          title, genre, initialPrompt, outline, chapterWithCorrectNumber, novelContent, settings
+        );
         
-        NovelUtils.log('小说内容已保存', 'success');
-        NovelUtils.toast(`成功生成 ${targetChapters.length} 章内容`, 'success');
-      })
-      .catch(err => {
-        NovelUtils.log('生成失败: ' + err.message, 'error');
-        NovelUtils.toast('生成失败: ' + err.message, 'error');
-      })
-      .finally(() => {
-        isGenerating = false;
-        NovelUtils.setButtonsDisabled(false);
-        NovelUtils.setProgress(0);
-        setTimeout(() => {
-          const bar = document.getElementById('progress-bar');
-          if (bar) bar.style.display = 'none';
-        }, 1500);
-      });
+        novelContent += (novelContent ? '\n\n' : '') + content;
+        currentProgress += progressStep;
+        NovelUtils.setProgress(currentProgress);
+        NovelUtils.log(`第${actualChapterNumber}章「${chapter.chapter_title}」完成`, 'success');
+      }
+    } catch (err) {
+      NovelUtils.log('生成失败: ' + err.message, 'error');
+      NovelUtils.toast('生成失败: ' + err.message, 'error');
+    } finally {
+      isGenerating = false;
+      NovelUtils.setButtonsDisabled(false);
+      NovelUtils.setProgress(0);
+      setTimeout(() => {
+        const bar = document.getElementById('progress-bar');
+        if (bar) bar.style.display = 'none';
+      }, 1500);
+    }
+
+    // 保存生成的内容
+    NovelUtils.setProgress(95);
+    NovelStorage.updateProject(project.id, {
+      novel_text: novelContent,
+      writing_chapter: startChapter + targetChapters.length - 1
+    });
+    
+    // 重新加载最新的项目数据
+    const updatedProject = NovelStorage.getProjectById(project.id);
+    NovelNav.setCurrentProject(updatedProject);
+    
+    // 更新 UI 并切换到输出 Tab
+    NovelNav.applyProjectToUI();
+    NovelNav.showTab('output');
+    
+    // 切换到正文视图（显示 novel-container，隐藏 outline-container）
+    const outlineContainer = document.getElementById('outline-container');
+    const novelContainer = document.getElementById('novel-container');
+    if (outlineContainer) {
+      outlineContainer.classList.add('hidden');
+    }
+    if (novelContainer) {
+      novelContainer.classList.remove('hidden');
+      novelContainer.style.display = 'flex';
+    }
+    
+    NovelUtils.log('小说内容已保存', 'success');
+    NovelUtils.toast(`成功生成 ${targetChapters.length} 章内容`, 'success');
+
   }
 
   /**
    * 生成单个章节的内容
    */
-  function generateChapterContent(title, genre, initialPrompt, outline, chapter, previousContent, settings) {
-    const systemPrompt = `你是一位专业的网络小说作家。
-小说标题：${title}
-类型：${genre}
-世界观：${JSON.stringify(outline.world_building || {})}
-主题：${outline.theme?.theme || ''}
-基调：${outline.theme?.tone || ''}
+  async function generateChapterContent(title, genre, initialPrompt, outline, chapter, previousContent, settings) {
+    // 使用专门的 Agent 分析本章涉及的角色详情
+    const involvedCharacters = await analyzeCharactersAgent(outline, chapter, settings);
+    
+    // 格式化角色详情为易读的文本
+    const charactersDetailText = involvedCharacters.length > 0
+      ? involvedCharacters.map(char => 
+`【${char.name}】
+• 性格：${char.personality}
+• 背景：${char.background}
+• 故事中的角色：${char.role_in_story}
+• 初始状态：${char.initial_state}
+• 最终状态：${char.final_state}
+• 关键变化：${char.key_changes}
+• 内心冲突：${char.conflicts}`
+        ).join('\n\n')
+      : '本章无特定角色出场';
 
-请根据章节大纲和前文内容，写出充满情感、生动有趣、符合网络文学风格的正文内容。
-字数要求：800-1500字`;
+    const systemPrompt = `你是一位专业的网络小说作家，擅长创作充满情感、生动有趣、符合网络文学风格的作品。
+
+请根据提供的小说背景设定和章节大纲，写出充满情感、生动有趣、符合网络文学风格的正文内容。
+
+写作要求：
+1. 严格遵循提供的世界观设定和角色性格
+2. 确保情节连贯，符合整体故事走向
+3. 角色行为要符合其性格特征和动机
+4. 字数要求：800-1500 字
+5. 格式要求：请在章节内容的开头和结尾分别添加特殊标记 [StartOfChapter:N] 和 [EndOfChapter:N]（N 为章节号），用于系统自动识别章节边界`;
+
+    // 格式化世界观信息为易读的文本
+    const worldBuilding = outline.world_building || {};
+    const worldBuildingText = Object.keys(worldBuilding).length > 0 
+      ? `时代背景：${worldBuilding.time_period || '未指定'}
+世界地点：${Array.isArray(worldBuilding.locations) ? worldBuilding.locations.join('、') : (worldBuilding.location || '未指定')}
+氛围基调：${worldBuilding.tone || worldBuilding.atmosphere || '未指定'}
+世界规则：${Array.isArray(worldBuilding.rules_of_world) ? worldBuilding.rules_of_world.join(':') : (worldBuilding.rules_of_world || '无特殊规则')}
+其他设定：${worldBuilding.other_settings || '无'}`
+      : '暂无详细世界观设定';
 
     const previousSummary = previousContent 
       ? `\n\n【前文摘要】\n${previousContent.slice(-500)}` 
       : '';
 
-    const userPrompt = `【章节信息】
+    const userPrompt = `【作品信息】
+小说标题：${title}
+类型：${genre}
+
+【世界观设定】
+${worldBuildingText}
+
+【故事主题】
+主题：${outline.theme?.theme || '未指定'}
+基调：${outline.theme?.tone || '未指定'}
+
+【本章出场角色详情（经 Agent 分析）】
+${charactersDetailText}
+
+【章节信息】
 章节号：${chapter.chapter_number}
 章节标题：${chapter.chapter_title}
 章节描述：${chapter.one_sentence}
-关键事件：${Array.isArray(chapter.key_events) ? chapter.key_events.join('；') : ''}
-涉及角色：${Array.isArray(chapter.characters_involved) ? chapter.characters_involved.join('；') : ''}
+关键事件：${Array.isArray(chapter.key_events) ? chapter.key_events.join(':') : ''}
 
 【故事进展】
 ${chapter.expanded_paragraph || chapter.one_sentence}
 ${previousSummary}
 
-请写出这一章的正文内容（800-1500字）。`;
+请写出这一章的正文内容（800-1500 字）。如果遇到章节开始，请先输出：第 x 章`;
+    console.log('[Calling LLM]', systemPrompt, userPrompt);
 
     return NovelAPI.call(
       [
@@ -252,15 +444,14 @@ ${previousSummary}
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.8,  // 略高的温度以增加创意
-      2000, // maxTokens，小说内容通常较长
+      1.0,  // 略高的温度以增加创意
+      5000, // maxTokens，小说内容通常较长
       { type: 'text' }
     ).then(r => {
       const content = r.choices[0].message.content || '';
       
-      // 格式化为章节格式
-      const chapterText = `第${chapter.chapter_number}章 ${chapter.chapter_title}\n\n${content}`;
-      return chapterText;
+      // AI 已在 System Prompt 指导下添加了章节标记，直接返回即可
+      return content;
     });
   }
 

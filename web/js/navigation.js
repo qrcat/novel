@@ -278,14 +278,21 @@ const NovelNav = (function() {
       NovelUI.renderCharactersList();
     }
 
-    // 渲染小说文本
+    // 渲染小说文本（过滤章节标记）
     if (currentProject.novel_text) {
       const novelPanel = document.getElementById('novel-panel');
       const novelTabContent = document.getElementById('novel-tab-content');
       const novelEditor = document.getElementById('novel-editor');
-      if (novelPanel) novelPanel.textContent = currentProject.novel_text;
-      if (novelTabContent) novelTabContent.textContent = currentProject.novel_text;
-      // 同步到编辑器（隐藏状态下），以便编辑时加载最新内容
+      
+      // 过滤掉 [StartOfChapter:x] 和 [EndOfChapter:x] 标记
+      const filteredText = currentProject.novel_text
+        .replace(/\[StartOfChapter:\d+\]/g, '')
+        .replace(/\[EndOfChapter:\d+\]/g, '')
+        .trim();
+      
+      if (novelPanel) novelPanel.textContent = filteredText;
+      if (novelTabContent) novelTabContent.textContent = filteredText;
+      // 同步到编辑器（隐藏状态下），编辑时保留原始标记以便保存
       if (novelEditor) novelEditor.value = currentProject.novel_text;
     }
   }
