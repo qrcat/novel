@@ -86,7 +86,6 @@ const NovelUI = (function() {
     const channel = document.getElementById('s-channel').value;
     const model = document.getElementById('s-model').value;
     const temperature = parseFloat(document.getElementById('s-temp').value);
-    const maxLoops = parseInt(document.getElementById('s-max-loops').value);
 
     // 保存全局设置（向后兼容）
     const settings = {
@@ -94,8 +93,7 @@ const NovelUI = (function() {
       base_url: baseUrl,
       channel: channel,
       model: model,
-      temperature: temperature,
-      maxLoops: maxLoops
+      temperature: temperature
     };
     NovelStorage.saveSettings(settings);
 
@@ -233,16 +231,34 @@ const NovelUI = (function() {
     const btnNovelTab = document.getElementById('btn-novel-tab');
     if (btnNovelTab) {
       btnNovelTab.addEventListener('click', () => {
-        // 显示中间区域的 novel-panel，隐藏 outline-panel
-        const novelPanel = document.getElementById('novel-panel');
+        // 显示 novel-container，隐藏 outline-panel
+        const novelContainer = document.getElementById('novel-container');
         const outlinePanel = document.getElementById('outline-panel');
-        if (novelPanel) {
-          novelPanel.classList.remove('hidden');
-          novelPanel.style.display = '';
+        if (novelContainer) {
+          novelContainer.classList.remove('hidden');
+          novelContainer.style.display = '';
         }
         if (outlinePanel) {
           outlinePanel.classList.add('hidden');
           outlinePanel.style.display = 'none';
+        }
+      });
+    }
+
+    // 大纲显示按钮：切换大纲显示/隐藏
+    const btnShowOutline = document.getElementById('btn-show-outline');
+    if (btnShowOutline) {
+      btnShowOutline.addEventListener('click', () => {
+        // 显示 outline-panel，隐藏 novel-container
+        const outlinePanel = document.getElementById('outline-panel');
+        const novelContainer = document.getElementById('novel-container');
+        if (outlinePanel) {
+          outlinePanel.classList.remove('hidden');
+          outlinePanel.style.display = '';
+        }
+        if (novelContainer) {
+          novelContainer.classList.add('hidden');
+          novelContainer.style.display = 'none';
         }
       });
     }
@@ -254,6 +270,22 @@ const NovelUI = (function() {
         const project = NovelNav.getCurrentProject();
         NovelProject.saveNovelTextAsTxt(project);
       });
+    }
+
+    // 正文编辑按钮
+    const btnEditNovel = document.getElementById('btn-edit-novel');
+    if (btnEditNovel) {
+      btnEditNovel.addEventListener('click', enableNovelEditMode);
+    }
+
+    const btnSaveNovel = document.getElementById('btn-save-novel');
+    if (btnSaveNovel) {
+      btnSaveNovel.addEventListener('click', saveNovelEdit);
+    }
+
+    const btnCancelNovel = document.getElementById('btn-cancel-novel');
+    if (btnCancelNovel) {
+      btnCancelNovel.addEventListener('click', cancelNovelEdit);
     }
 
     // 大纲生成按钮（会在大纲生成模块中添加）
@@ -280,31 +312,15 @@ const NovelUI = (function() {
       sChannel.addEventListener('change', applyChannelDefaults);
     }
 
-    // 滑块实时显示数值
     const sTemp = document.getElementById('s-temp');
     if (sTemp) {
-      sTemp.addEventListener('input', function() {
-        document.getElementById('s-temp-label').textContent = parseFloat(this.value).toFixed(2);
-      });
-    }
-
-    const sMaxLoops = document.getElementById('s-max-loops');
-    if (sMaxLoops) {
-      sMaxLoops.addEventListener('input', function() {
-        document.getElementById('s-max-loops-label').textContent = parseInt(this.value);
-      });
+      sTemp.addEventListener('input', (e) => updateTemperatureLabel(e.target.value));
     }
 
     // 角色新增按钮
     const btnAddChar = document.getElementById('btn-add-char');
     if (btnAddChar) {
       btnAddChar.addEventListener('click', showAddCharModal);
-    }
-
-    // 多 Agent 模式切换按钮
-    const btnMultiAgent = document.getElementById('btn-multi-agent-toggle');
-    if (btnMultiAgent) {
-      btnMultiAgent.addEventListener('click', toggleMultiAgentMode);
     }
 
     console.log('[NovelAgents] UI events bound');
@@ -396,35 +412,105 @@ const NovelUI = (function() {
   }
 
   /**
-   * 切换多 Agent 模式
+   * 启用正文编辑模式
    */
-  function toggleMultiAgentMode() {
-    const btn = document.getElementById('btn-multi-agent-toggle');
-    const statusSpan = document.getElementById('multi-agent-status');
-    
-    if (!btn || !statusSpan) return;
-    
-    // 切换状态
-    const currentState = btn.textContent.includes('开启') ? true : false;
-    const newState = !currentState;
-    
-    // 更新 UI
-    if (newState) {
-      statusSpan.textContent = '开启';
-      btn.classList.add('btn-primary');
-      btn.classList.remove('btn-ghost');
-      NovelUtils.toast('多 Agent 模式已开启', 'success');
-    } else {
-      statusSpan.textContent = '关闭';
-      btn.classList.remove('btn-primary');
-      btn.classList.add('btn-ghost');
-      NovelUtils.toast('多 Agent 模式已关闭，使用单 Agent 模式', 'info');
-    }
-    
-    // 调用 NovelWriter 的设置方法
-    if (typeof NovelWriter.setMultiAgentMode === 'function') {
-      NovelWriter.setMultiAgentMode(newState);
-    }
+  function enableNovelEditMode() {
+    const project = NovelNav.getCurrentProject();
+    if (!project) return;
+
+    const novelPanel = document.getElementById('novel-panel');
+    const novelEditor = document.getElementById('novel-editor');
+    const btnEdit = document.getElementById('btn-edit-novel');
+    const btnSave = document.getElementById('btn-save-novel');
+    const btnCancel = document.getElementById('btn-cancel-novel');
+
+    if (!novelPanel || !novelEditor) return;
+
+    // 加载内容到编辑器
+    novelEditor.value = project.novel_text || '';
+
+    // 切换显示/编辑模式 - 同时使用 classList 和内联样式确保生效
+    novelPanel.classList.add('hidden');
+    novelPanel.style.display = 'none';
+    novelEditor.classList.remove('hidden');
+    novelEditor.style.display = '';
+
+    // 切换按钮状态
+    if (btnEdit) btnEdit.style.display = 'none';
+    if (btnSave) btnSave.style.display = '';
+    if (btnCancel) btnCancel.style.display = '';
+
+    // 聚焦编辑器
+    novelEditor.focus();
+  }
+
+  /**
+   * 保存正文编辑
+   */
+  function saveNovelEdit() {
+    const project = NovelNav.getCurrentProject();
+    if (!project) return;
+
+    const novelEditor = document.getElementById('novel-editor');
+    const novelPanel = document.getElementById('novel-panel');
+    const btnEdit = document.getElementById('btn-edit-novel');
+    const btnSave = document.getElementById('btn-save-novel');
+    const btnCancel = document.getElementById('btn-cancel-novel');
+
+    if (!novelEditor || !novelPanel) return;
+
+    // 获取编辑后的内容
+    const editedText = novelEditor.value.trim();
+
+    // 更新项目数据
+    project.novel_text = editedText;
+
+    // 持久化到存储
+    NovelStorage.updateProject(project.id, { novel_text: project.novel_text });
+
+    // 切换回显示模式 - 同时使用 classList 和内联样式确保生效
+    novelEditor.classList.add('hidden');
+    novelEditor.style.display = 'none';
+    novelPanel.classList.remove('hidden');
+    novelPanel.style.display = '';
+    novelPanel.textContent = editedText;
+
+    // 切换按钮状态
+    if (btnEdit) btnEdit.style.display = '';
+    if (btnSave) btnSave.style.display = 'none';
+    if (btnCancel) btnCancel.style.display = 'none';
+
+    NovelUtils.toast('正文已保存');
+  }
+
+  /**
+   * 取消正文编辑
+   */
+  function cancelNovelEdit() {
+    const project = NovelNav.getCurrentProject();
+    if (!project) return;
+
+    const novelEditor = document.getElementById('novel-editor');
+    const novelPanel = document.getElementById('novel-panel');
+    const btnEdit = document.getElementById('btn-edit-novel');
+    const btnSave = document.getElementById('btn-save-novel');
+    const btnCancel = document.getElementById('btn-cancel-novel');
+
+    if (!novelEditor || !novelPanel) return;
+
+    // 不保存，直接切换回显示模式 - 同时使用 classList 和内联样式确保生效
+    novelEditor.classList.add('hidden');
+    novelEditor.style.display = 'none';
+    novelPanel.classList.remove('hidden');
+    novelPanel.style.display = '';
+    novelPanel.textContent = project.novel_text || '';
+
+    // 切换按钮状态
+    if (btnEdit) btnEdit.style.display = '';
+    if (btnSave) btnSave.style.display = 'none';
+    if (btnCancel) btnCancel.style.display = 'none';
+
+    NovelUtils.toast('已取消编辑');
   }
 
   return {
@@ -442,6 +528,9 @@ const NovelUI = (function() {
     bindAllEvents,
     editCharacter,
     deleteCharacter,
-    showAddCharModal
+    showAddCharModal,
+    enableNovelEditMode,
+    saveNovelEdit,
+    cancelNovelEdit
   };
 })();

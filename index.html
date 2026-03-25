@@ -58,7 +58,8 @@ select{cursor:pointer}
 .form-actions{display:flex;justify-content:flex-end;gap:.75rem;padding:1rem 1.5rem;border-top:1px solid var(--border)}
 .layout{display:grid;grid-template-columns:300px 1fr 300px;height:calc(100vh - 60px);overflow:hidden}
 .sidebar{border-right:1px solid var(--border);overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1.25rem}
-.main-area{display:flex;flex-direction:column;overflow:hidden}
+.main-area{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.main-area .content-wrapper{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
 .right-panel{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
 .panel-title{font-size:.68rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;font-family:'DM Mono',monospace}
 .panel-tabs{display:flex;border-bottom:1px solid var(--border);background:rgba(22,20,26,.8)}
@@ -100,7 +101,11 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .arc-arrow{font-size:.75rem;color:var(--muted);margin:.2rem 0}
 .world-rule{display:flex;align-items:flex-start;gap:.5rem;padding:.3rem 0;font-size:.82rem}
 .world-rule::before{content:\25c8;color:var(--accent);flex-shrink:0}
-.novel-text{flex:1;overflow-y:auto;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto}
+.novel-text{flex:1;overflow-y:auto;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;width:100%}
+.novel-container{flex:1;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.novel-content-wrapper{flex:1;overflow:auto;position:relative}
+.novel-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.8);flex-shrink:0}
+#novel-editor{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;border:none;outline:none;background:transparent;color:var(--text);font-family:'Noto Serif SC',serif;resize:none}
 .output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
 .output-box:empty::before{content:'等待生成...';color:var(--muted)}
 .log-entry{margin-bottom:.15rem}
@@ -169,13 +174,6 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
         <div class="info-block" style="text-align:center;color:var(--muted);font-size:.85rem">生成大纲后显示</div>
       </div>
     </div>
-    <div>
-      <div class="panel-title">数据操作</div>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-        <button class="btn btn-ghost" id="btn-export" style="flex:1;font-size:.8rem">导出</button>
-        <button class="btn btn-danger" id="btn-delete" style="flex:1;font-size:.8rem">删除</button>
-      </div>
-    </div>
   </aside>
 
   <section class="main-area">
@@ -183,17 +181,32 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
       <span class="toolbar-label" id="toolbar-status">大纲</span>
       <button class="btn btn-primary" id="btn-outline">生成大纲</button>
       <button class="btn btn-ghost" id="btn-round" disabled onclick="window.generateRound(1)">写一段</button>
+      <button class="btn btn-ghost" id="btn-show-outline">大纲</button>
       <button class="btn btn-ghost" id="btn-novel-tab">正文</button>
       <button class="btn btn-ghost" id="btn-save-text">保存正文</button>
-      <button class="btn btn-ghost" id="btn-multi-agent-toggle" title="切换多 Agent 模式">🤖 多 Agent: <span id="multi-agent-status">开启</span></button>
     </div>
-    <div class="outline-scroll" id="outline-panel">
-      <div class="outline-empty" id="outline-empty">
-        <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
+    <div class="content-wrapper">
+      <!-- 大纲显示区 -->
+      <div class="outline-scroll" id="outline-panel">
+        <div class="outline-empty" id="outline-empty">
+          <p>还没有生成大纲</p><p>配置模型后，点击「生成大纲」开始</p>
+        </div>
+        <div id="outline-content" class="hidden"></div>
       </div>
-      <div id="outline-content" class="hidden"></div>
+      
+      <!-- 正文显示/编辑区 -->
+      <div class="novel-container hidden" id="novel-container">
+        <div class="novel-content-wrapper">
+          <div class="novel-text" id="novel-panel"></div>
+          <textarea id="novel-editor" class="hidden"></textarea>
+        </div>
+        <div class="novel-toolbar">
+          <button class="btn btn-ghost" id="btn-edit-novel">✎ 编辑</button>
+          <button class="btn btn-ghost" id="btn-save-novel" style="display:none">✓ 保存</button>
+          <button class="btn btn-ghost" id="btn-cancel-novel" style="display:none">✕ 取消</button>
+        </div>
+      </div>
     </div>
-    <div class="novel-text hidden" id="novel-panel"></div>
   </section>
 
   <aside class="right-panel">
@@ -301,19 +314,6 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
         </div>
       </div>
 
-      <div style="margin-bottom:1.5rem">
-        <div class="panel-title">&#129302; Agent &#24490;&#29615;&#25511;&#21046;</div>
-        <div class="form-group" style="margin-bottom:.75rem">
-          <label class="form-label">&#26368;&#22823;&#24490;&#29615;&#27425;&#25968; &nbsp; <span id="s-max-loops-label">100</span></label>
-          <div class="control-row">
-            <input type="range" id="s-max-loops" min="1" max="200" step="1" value="100">
-          </div>
-          <div style="font-size:.75rem;color:var(--muted);margin-top:.4rem;font-family:'DM Mono',monospace">
-            &#27599;&#31456;&#26368;&#22810;&#29983;&#25104;&#36719;&#27425;&#65292;&#20540;&#36234;&#22823;&#36234;&#23481;&#26131;&#29983;&#25104;&#38271;&#31456;&#33410;
-          </div>
-        </div>
-      </div>
-
       <div style="display:flex;gap:.75rem;flex-wrap:wrap">
         <button class="btn btn-primary" id="btn-save-settings">&#128190; &#20445;&#23384;&#35774;&#32622;</button>
         <button class="btn btn-ghost" id="btn-test-conn">&#128270; &#27979;&#35797;&#36830;&#25509;</button>
@@ -388,8 +388,6 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 <script src="web/js/utils.js"></script>
 <script src="web/js/providers.js"></script>
 <script src="web/js/api.js"></script>
-<script src="web/js/agents.js"></script>
-<script src="web/js/character_tools.js"></script>
 <script src="web/js/project.js"></script>
 <script src="web/js/navigation.js"></script>
 <script src="web/js/ui.js"></script>

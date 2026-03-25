@@ -231,11 +231,28 @@ const NovelNav = (function() {
       if (infoStatus) infoStatus.textContent = '大纲就绪';
       document.getElementById('btn-round')?.removeAttribute('disabled');
       document.getElementById('btn-round2')?.removeAttribute('disabled');
+      
+      // 大纲已就绪，禁用生成按钮
+      const btnOutline = document.getElementById('btn-outline');
+      if (btnOutline) {
+        btnOutline.disabled = true;
+        btnOutline.style.opacity = '0.5';
+        btnOutline.style.cursor = 'not-allowed';
+      }
+      
       renderOutline(currentProject.outline);
     } else {
       if (infoStatus) infoStatus.textContent = '等待大纲';
       document.getElementById('btn-round')?.setAttribute('disabled', 'disabled');
       document.getElementById('btn-round2')?.setAttribute('disabled', 'disabled');
+      
+      // 没有大纲，启用生成按钮
+      const btnOutline = document.getElementById('btn-outline');
+      if (btnOutline) {
+        btnOutline.disabled = false;
+        btnOutline.style.opacity = '';
+        btnOutline.style.cursor = '';
+      }
     }
 
     // 渲染角色列表（无论是否为空都调用）
@@ -245,8 +262,11 @@ const NovelNav = (function() {
     if (currentProject.novel_text) {
       const novelPanel = document.getElementById('novel-panel');
       const novelTabContent = document.getElementById('novel-tab-content');
+      const novelEditor = document.getElementById('novel-editor');
       if (novelPanel) novelPanel.textContent = currentProject.novel_text;
       if (novelTabContent) novelTabContent.textContent = currentProject.novel_text;
+      // 同步到编辑器（隐藏状态下），以便编辑时加载最新内容
+      if (novelEditor) novelEditor.value = currentProject.novel_text;
     }
   }
 
@@ -397,7 +417,6 @@ const NovelNav = (function() {
     const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
     const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
     const temperature = settings.temperature || 0.8;
-    const maxLoops = settings.maxLoops || 100;
 
     document.getElementById('s-api-key').value = apiKey;
     document.getElementById('s-base-url').value = baseUrl;
@@ -405,8 +424,6 @@ const NovelNav = (function() {
     document.getElementById('s-model').value = model;
     document.getElementById('s-temp').value = temperature;
     document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
-    document.getElementById('s-max-loops').value = maxLoops;
-    document.getElementById('s-max-loops-label').textContent = maxLoops;
   }
 
   /**
@@ -433,16 +450,12 @@ const NovelNav = (function() {
       ? (providerConfig.baseUrl || '') 
       : provider.baseUrl;
 
-    // 从全局设置中读取 maxLoops
-    const globalSettings = NovelStorage.getSettings();
-
     return {
       provider: activeProvider,
       apiKey: providerConfig.apiKey || '',
       baseUrl: baseUrl,
       model: providerConfig.model || provider.defaultModel,
-      temperature: globalSettings.temperature || 0.8,
-      maxLoops: globalSettings.maxLoops || 100, // 新增：包含 maxLoops
+      temperature: NovelStorage.getSettings().temperature || 0.8,
       providerInfo: provider
     };
   }
@@ -458,7 +471,6 @@ const NovelNav = (function() {
       baseUrl: settings.base_url || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       model: settings.model || 'qwen-plus',
       temperature: settings.temperature || 0.8,
-      maxLoops: settings.maxLoops || 100, // 新增：包含 maxLoops
       providerInfo: NovelProviders.getProvider('dashscope')
     };
   }

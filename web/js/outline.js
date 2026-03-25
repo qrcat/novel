@@ -31,6 +31,14 @@ const NovelOutlineGen = (function() {
     NovelUtils.log('开始生成大纲...', 'phase');
     NovelUtils.setProgress(5);
 
+    // 禁用生成大纲按钮
+    const btnOutline = document.getElementById('btn-outline');
+    if (btnOutline) {
+      btnOutline.disabled = true;
+      btnOutline.style.opacity = '0.5';
+      btnOutline.style.cursor = 'not-allowed';
+    }
+
     const title = project.title;
     const genre = project.genre;
     const prompt = project.initial_prompt;
@@ -67,7 +75,7 @@ const NovelOutlineGen = (function() {
         assembleAndSaveOutline(project, data);
       })
       .catch(err => {
-        NovelUtils.log('错误: ' + err.message, 'error');
+        NovelUtils.log('错误：' + err.message, 'error');
         NovelUtils.toast(err.message, 'error');
       })
       .finally(() => {
@@ -318,6 +326,14 @@ const NovelOutlineGen = (function() {
     NovelUtils.log('大纲生成完成!', 'success');
     NovelNav.showTab('outline');
     NovelUtils.toast('大纲生成完成!');
+    
+    // 大纲已就绪，保持生成按钮禁用状态
+    const btnOutline = document.getElementById('btn-outline');
+    if (btnOutline) {
+      btnOutline.disabled = true;
+      btnOutline.style.opacity = '0.5';
+      btnOutline.style.cursor = 'not-allowed';
+    }
   }
 
   return {
