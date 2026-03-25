@@ -10,6 +10,8 @@ const NovelStorage = (function() {
   const DEFAULT_SETTINGS = {
     activeProvider: 'dashscope',  // 当前活跃的提供商
     temperature: 0.8,
+    characterAgentEnabled: false,  // 是否启用角色 Agent
+    characterAgentMaxRounds: 10,  // 角色 Agent 多轮查询的最大轮次
     // 以下字段保留向后兼容
     api_key: '',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',

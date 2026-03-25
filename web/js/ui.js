@@ -86,6 +86,8 @@ const NovelUI = (function() {
     const channel = document.getElementById('s-channel').value;
     const model = document.getElementById('s-model').value;
     const temperature = parseFloat(document.getElementById('s-temp').value);
+    const characterAgentEnabled = document.getElementById('s-character-agent')?.checked || false;
+    const characterAgentMaxRounds = parseInt(document.getElementById('s-character-agent-max-rounds')?.value || '10');
 
     // 保存全局设置（向后兼容）
     const settings = {
@@ -93,7 +95,9 @@ const NovelUI = (function() {
       base_url: baseUrl,
       channel: channel,
       model: model,
-      temperature: temperature
+      temperature: temperature,
+      characterAgentEnabled: characterAgentEnabled,
+      characterAgentMaxRounds: characterAgentMaxRounds
     };
     NovelStorage.saveSettings(settings);
 
@@ -488,6 +492,15 @@ const NovelUI = (function() {
     const sTemp = document.getElementById('s-temp');
     if (sTemp) {
       sTemp.addEventListener('input', (e) => updateTemperatureLabel(e.target.value));
+    }
+
+    // 角色 Agent 最大查询轮次滑块
+    const sMaxRounds = document.getElementById('s-character-agent-max-rounds');
+    const sMaxRoundsValue = document.getElementById('s-max-rounds-value');
+    if (sMaxRounds && sMaxRoundsValue) {
+      sMaxRounds.addEventListener('input', (e) => {
+        sMaxRoundsValue.textContent = e.target.value;
+      });
     }
 
     console.log('[NovelAgents] UI events bound');
@@ -1209,6 +1222,8 @@ const NovelUI = (function() {
     const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
     const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
     const temperature = settings.temperature || 0.8;
+    const characterAgentEnabled = settings.characterAgentEnabled || false;
+    const characterAgentMaxRounds = settings.characterAgentMaxRounds || 10;
 
     console.log('[initializeSettingsUI] 最终模型:', model);
 
@@ -1225,6 +1240,22 @@ const NovelUI = (function() {
     // 步骤 4: 设置温度
     document.getElementById('s-temp').value = temperature;
     document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
+    
+    // 步骤 5: 设置角色 Agent 开关状态
+    const characterAgentToggle = document.getElementById('s-character-agent');
+    if (characterAgentToggle) {
+      characterAgentToggle.checked = characterAgentEnabled;
+    }
+    
+    // 步骤 6: 设置最大查询轮次
+    const maxRoundsSlider = document.getElementById('s-character-agent-max-rounds');
+    const maxRoundsValue = document.getElementById('s-max-rounds-value');
+    if (maxRoundsSlider) {
+      maxRoundsSlider.value = characterAgentMaxRounds;
+      if (maxRoundsValue) {
+        maxRoundsValue.textContent = characterAgentMaxRounds;
+      }
+    }
     
     console.log('[initializeSettingsUI] 设置 UI 初始化完成');
   }

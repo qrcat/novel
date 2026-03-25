@@ -434,25 +434,296 @@ ${previousSummary}
 请写出这一章的正文内容（800-1500 字）。如果遇到章节开始，请先输出：第 x 章`;
     console.log('[Calling LLM]', systemPrompt, userPrompt);
 
-    return NovelAPI.call(
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      null,
-      settings.model,
-      settings.apiKey,
-      settings.baseUrl,
-      settings.provider,
-      1.0,  // 略高的温度以增加创意
-      5000, // maxTokens，小说内容通常较长
-      { type: 'text' }
-    ).then(r => {
-      const content = r.choices[0].message.content || '';
+    // 如果启用了角色 Agent，则使用 tool call 模式
+    if (settings.characterAgentEnabled) {
+      return generateWithCharacterAgent(
+        systemPrompt, 
+        userPrompt, 
+        involvedCharacters, 
+        settings
+      );
+    } else {
+      // 不使用 tool call，直接生成
+      return NovelAPI.call(
+        [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        null,
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        1.0,  // 略高的温度以增加创意
+        5000, // maxTokens，小说内容通常较长
+        { type: 'text' }
+      ).then(r => {
+        const content = r.choices[0].message.content || '';
+        
+        // AI 已在 System Prompt 指导下添加了章节标记，直接返回即可
+        return content;
+      });
+    }
+  }
+
+  /**
+   * 使用角色 Agent 生成章节内容（带 tool call）
+   */
+  async function generateWithCharacterAgent(systemPrompt, userPrompt, involvedCharacters, settings) {
+    NovelUtils.log('启用角色 Agent 进行创作...', 'phase');
+    
+    // 增强 System Prompt：明确指示只输出小说正文
+    const enhancedSystemPrompt = `${systemPrompt}
+
+【重要写作规范】
+1. **只输出小说正文内容** - 直接开始写故事，不要输出任何思考过程、查询说明或元描述
+2. **禁止输出的内容**：
+   - ❌ "我来查询..."、"现在查询..."、"接下来查询..."等查询说明
+   - ❌ "以便更好地描写..."、"为了..."等写作意图说明
+   - ❌ "最后查询..."、"首先..."等步骤描述
+   - ❌ 任何关于你将如何写作的解释性文字
+3. **正确格式**：
+   - ✅ 直接从章节标题或正文开始："第 x 章 xxx"或直接进入场景描写
+   - ✅ 如果需要查询角色行为，请直接调用工具，无需在正文中说明
+   - ✅ 工具调用是隐式的，不应该出现在最终的小说文本中
+4. **多轮协作说明**：
+   - 你可以多次调用查询工具来获取角色的详细反应
+   - 每次调用后，请基于查询结果继续写正文
+   - 当你完成所有章节内容后，停止调用工具并结束
+
+记住：你的输出就是最终的小说文本，读者会直接看到你写的内容，所以不要包含任何写作过程的说明。`;
+
+    // 定义角色查询工具
+    const characterTools = [{
+      type: 'function',
+      function: {
+        name: 'query_character_behavior',
+        description: '查询指定角色在当前情境下会做出的行为、对话或心理活动。当你需要描写角色的具体反应、表情、动作、语言或内心想法时使用此工具。',
+        parameters: {
+          type: 'object',
+          properties: {
+            character_name: {
+              type: 'string',
+              description: '要查询的角色名称'
+            },
+            situation: {
+              type: 'string',
+              description: '当前情境描述，例如"听到这个消息后"、"面对敌人的挑衅时"'
+            },
+            query_type: {
+              type: 'string',
+              enum: ['behavior', 'dialogue', 'psychology'],
+              description: '查询类型：behavior=行为反应，dialogue=语言回应，psychology=心理活动'
+            }
+          },
+          required: ['character_name', 'situation', 'query_type']
+        }
+      }
+    }];
+
+    // 构建包含角色档案的完整消息
+    const messages = [
+      { role: 'system', content: enhancedSystemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+    console.log('[Calling LLM]', enhancedSystemPrompt, userPrompt)
+    // 添加角色档案到 system prompt 的上下文中
+    const characterProfiles = involvedCharacters.map(char => ({
+      name: char.name,
+      personality: char.personality,
+      background: char.background,
+      role_in_story: char.role_in_story,
+      initial_state: char.initial_state,
+      final_state: char.final_state,
+      key_changes: char.key_changes,
+      conflicts: char.conflicts
+    }));
+
+    let roundCount = 0;
+    const maxRounds = settings.characterAgentMaxRounds || 10;  // 从设置中读取最大轮次
+    let hasToolCalls = true;
+    let novelContent = '';  // 累加正文内容
+
+    // 多轮循环处理，直到 AI 不再返回 tool_calls
+    while (hasToolCalls && roundCount < maxRounds) {
+      roundCount++;
+      NovelUtils.log(`开始第 ${roundCount} 轮创作...`, 'phase');
+
+      // 调用 LLM（始终传递 tools，让 AI 可以继续触发新的查询）
+      const response = await NovelAPI.call(
+        messages,
+        characterTools,  // 保持传递 tools，支持连续查询
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        1.0,
+        5000,
+        { type: 'text' }
+      );
+
+      const assistantMessage = response.choices[0].message;
       
-      // AI 已在 System Prompt 指导下添加了章节标记，直接返回即可
-      return content;
-    });
+      // 检查是否有工具调用
+      hasToolCalls = assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0;
+      
+      if (hasToolCalls) {
+        NovelUtils.log(`第${roundCount}轮：检测到 ${assistantMessage.tool_calls.length} 个角色查询请求`, 'phase');
+        
+        // 累加本轮 AI 生成的正文内容（如果有）
+        if (assistantMessage.content) {
+          novelContent += assistantMessage.content;
+          NovelUtils.log(`已累加本轮正文内容 (${assistantMessage.content.length} 字)`, 'phase');
+        }
+        
+        // 将 AI 的回复添加到消息历史
+        messages.push(assistantMessage);
+        
+        // 处理每个工具调用
+        for (const toolCall of assistantMessage.tool_calls) {
+          try {
+            const args = JSON.parse(toolCall.function.arguments);
+            const characterName = args.character_name;
+            const situation = args.situation;
+            const queryType = args.query_type;
+            
+            NovelUtils.log(`查询角色 "${characterName}" 的${queryType}：${situation}`, 'phase');
+            
+            // 在角色档案中查找该角色
+            const character = characterProfiles.find(c => c.name === characterName);
+            
+            if (!character) {
+              // 角色不存在，返回错误（使用 tool 消息格式）
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `查询失败：未找到角色 "${characterName}"。可用角色：${characterProfiles.map(c => c.name).join(', ')}`
+              });
+              continue;
+            }
+            
+            // 基于角色设定生成合理的反应
+            const behaviorResponse = await generateCharacterResponse(
+              character,
+              situation,
+              queryType,
+              settings
+            );
+            
+            // 将工具调用结果添加到消息历史（使用标准的 tool 消息格式）
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `${characterName}在"${situation}"下的${get_query_type_name(queryType)}：${behaviorResponse}`
+            });
+            
+            NovelUtils.log(`获取到 "${characterName}" 的反应`, 'success');
+            
+          } catch (error) {
+            NovelUtils.log('解析工具调用参数失败：' + error.message, 'error');
+            // 解析失败时也使用 tool 消息格式
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `解析失败：${error.message}。请使用正确的 JSON 格式。`
+            });
+          }
+        }
+        
+        NovelUtils.log(`第${roundCount}轮：所有工具调用已处理，继续下一轮...`, 'phase');
+        
+      } else {
+        // 没有工具调用了，AI 已经完成了正文创作
+        NovelUtils.log(`第${roundCount}轮：未检测到工具调用，创作完成`, 'success');
+        
+        // 累加最后一轮的完整正文内容
+        if (assistantMessage.content) {
+          novelContent += assistantMessage.content;
+          NovelUtils.log(`已累加最终正文内容 (${assistantMessage.content.length} 字)`, 'success');
+
+        }
+      }
+    }
+
+    // 检查是否超过最大轮次
+    if (roundCount >= maxRounds) {
+      NovelUtils.log(`警告：达到最大轮次限制 (${maxRounds})，强制结束`, 'warning');
+    }
+
+    // 验证是否成功累加了内容
+    if (!novelContent.trim()) {
+      NovelUtils.log('警告：未累加到任何正文内容，使用最后一轮响应', 'warning');
+      return messages[messages.length - 1]?.content || '';
+    }
+
+    NovelUtils.log(`角色辅助创作完成，共执行 ${roundCount} 轮，累计 ${novelContent.length} 字`, 'success');
+    
+    return novelContent;
+  }
+
+  /**
+   * 根据角色设定生成具体的行为/对话/心理反应
+   */
+  async function generateCharacterResponse(character, situation, queryType, settings) {
+    const queryTypeNames = {
+      'behavior': '行为反应',
+      'dialogue': '语言回应',
+      'psychology': '心理活动'
+    };
+
+    const charSystemPrompt = `你是一位专业的角色扮演助手。你的任务是根据提供的角色设定，模拟该角色在特定情境下的反应。
+
+角色档案：
+【${character.name}】
+• 性格：${character.personality}
+• 背景：${character.background}
+• 故事中的角色：${character.role_in_story}
+• 初始状态：${character.initial_state}
+• 最终状态：${character.final_state}
+• 关键变化：${character.key_changes}
+• 内心冲突：${character.conflicts}
+
+请根据以上角色设定，想象这个角色在以下情境中会如何${queryTypeNames[queryType]}。
+要求：符合角色性格，逻辑合理，描写生动。`;
+
+    const charUserPrompt = `情境：${situation}
+
+请用简洁的语言描述${character.name}在这种情况下会如何${queryTypeNames[queryType]}（50-100 字）。`;
+    console.log('[Calling LLM]', charSystemPrompt, charUserPrompt);
+
+    try {
+      const response = await NovelAPI.call(
+        [
+          { role: 'system', content: charSystemPrompt },
+          { role: 'user', content: charUserPrompt }
+        ],
+        null,
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        0.8,  // 适中的温度
+        500,  // 不需要太长
+        { type: 'text' }
+      );
+      console.log('[LLM Response]', response.choices[0].message.content);
+      return response.choices[0].message.content || '无法确定反应';
+    } catch (error) {
+      NovelUtils.log('生成角色反应失败：' + error.message, 'error');
+      return '（因技术原因无法获取详细反应）';
+    }
+  }
+
+  /**
+   * 获取查询类型的中文名称
+   */
+  function get_query_type_name(queryType) {
+    const names = {
+      'behavior': '行为反应',
+      'dialogue': '语言回应',
+      'psychology': '心理活动'
+    };
+    return names[queryType] || queryType;
   }
 
   return {
