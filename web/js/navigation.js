@@ -773,12 +773,16 @@ const NovelNav = (function() {
       ? (providerConfig.baseUrl || '') 
       : provider.baseUrl;
 
+    const settings = NovelStorage.getSettings();
+
     return {
       provider: activeProvider,
       apiKey: providerConfig.apiKey || '',
       baseUrl: baseUrl,
       model: providerConfig.model || provider.defaultModel,
-      temperature: NovelStorage.getSettings().temperature || 0.8,
+      temperature: settings.temperature || 0.8,
+      characterAgentEnabled: settings.characterAgentEnabled || false,
+      characterAgentMaxRounds: settings.characterAgentMaxRounds || 10,
       providerInfo: provider
     };
   }
@@ -794,6 +798,8 @@ const NovelNav = (function() {
       baseUrl: settings.base_url || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       model: settings.model || 'qwen-plus',
       temperature: settings.temperature || 0.8,
+      characterAgentEnabled: settings.characterAgentEnabled || false,
+      characterAgentMaxRounds: settings.characterAgentMaxRounds || 10,
       providerInfo: NovelProviders.getProvider('dashscope')
     };
   }

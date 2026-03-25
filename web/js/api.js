@@ -34,18 +34,29 @@ const NovelAPI = (function() {
   }
 
   /**
-   * 调用OpenAI兼容的API（DashScope, OpenAI等）
+   * 调用 OpenAI 兼容的 API（DashScope, OpenAI 等）
    */
   function callOpenAICompatible(messages, tools, model, apiKey, baseUrl, temperature, maxTokens, responseFormat) {
     const body = {
       model: model,
       messages: messages.map(m => {
-        const obj = { role: m.role, content: m.content };
-        if (m.tool_calls) obj.tool_calls = m.tool_calls;
-        if (m.tool_call_id) {
-          obj.tool_call_id = m.tool_call_id;
-          obj.content = m.content;
+        // 处理 tool 角色的消息
+        if (m.role === 'tool') {
+          return {
+            role: 'tool',
+            tool_call_id: m.tool_call_id,
+            content: m.content
+          };
         }
+        
+        // 处理普通消息和 assistant 消息
+        const obj = { role: m.role, content: m.content };
+        
+        // 处理 tool_calls（assistant 消息中的工具调用）
+        if (m.tool_calls) {
+          obj.tool_calls = m.tool_calls;
+        }
+        
         return obj;
       }),
       temperature: temperature || 0.8,
@@ -53,9 +64,11 @@ const NovelAPI = (function() {
     };
 
     if (responseFormat) body.response_format = responseFormat;
-    if (tools && tools.length) body.tools = tools;
+    if (tools && tools.length > 0) {
+      body.tools = tools;
+    }
 
-    NovelUtils.log('LLM调用 (' + model + ')...', 'phase');
+    NovelUtils.log('LLM 调用 (' + model + ')...', 'phase');
 
     return fetch(baseUrl + '/chat/completions', {
       method: 'POST',

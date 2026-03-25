@@ -149,7 +149,14 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .outline-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.95);flex-shrink:0}
 #novel-editor{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;border:none;outline:none;background:transparent;color:var(--text);font-family:'Noto Serif SC',serif;resize:none}
 .output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
-.output-box:empty::before{content:'等待生成...';color:var(--muted)}
+
+/* Switch Toggle Style */
+.switch{position:relative;display:inline-block;width:44px;height:24px}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:var(--border);transition:.3s;border-radius:24px}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:var(--text);transition:.3s;border-radius:50%}
+input:checked+.slider{background-color:var(--accent)}
+input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f}
 .log-entry{margin-bottom:.15rem}
 .log-phase{color:var(--accent2)}
 .log-error{color:var(--danger)}
@@ -350,6 +357,32 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
           <div class="control-row">
             <input type="range" id="s-temp" min="0.1" max="1.5" step="0.05" value="0.8">
           </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem">
+        <div class="panel-title">&#129302; AI Agent &#37197;&#32622;</div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>&#21551;&#29992;&#35282;&#33394; Agent</span>
+            <label class="switch">
+              <input type="checkbox" id="s-character-agent">
+              <span class="slider"></span>
+            </label>
+          </label>
+          <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem">
+            &#21551;&#29992;&#21518;&#65292;&#23567;&#35828;&#21019;&#20316;&#26102;&#21487;&#36890;&#36807; Tool Call &#26597;&#35810;&#35282;&#33394;&#22312;&#24403;&#21069;&#24773;&#20917;&#19979;&#30340;&#34892;&#20026;&#12289;&#23545;&#35805;&#21644;&#24515;&#29702;&#27963;&#21160;
+          </p>
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label">&#26368;&#22823;&#26597;&#35810;&#36718;&#27425;</label>
+          <div class="control-row" style="display:flex;gap:.75rem;align-items:center">
+            <input type="range" id="s-character-agent-max-rounds" min="0" max="100" step="1" value="10" style="flex:1">
+            <span id="s-max-rounds-value" style="min-width:3rem;text-align:right;font-weight:600">10</span>
+          </div>
+          <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem">
+            &#35282;&#33394; Agent &#22312;&#29983;&#25104;&#27491;&#25991;&#26102;&#26368;&#22810;&#36827;&#34892;&#22810;&#23752;&#26597;&#35810;&#65292;&#36991;&#20813;&#26080;&#38480;&#24490;&#29615;&#12290;&#24314;&#35758;&#35774;&#32622;&#20026; 5-15 &#36718;
+          </p>
         </div>
       </div>
 
