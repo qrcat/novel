@@ -79,7 +79,8 @@ const NovelNav = (function() {
     if (pageChars) pageChars.classList.add('hidden');
 
     updateHeaderForSettings(fromProject);
-    initializeSettingsUI();
+    
+    NovelUI.initializeSettingsUI();
   }
 
   /**
@@ -744,35 +745,9 @@ const NovelNav = (function() {
   }
 
   /**
-   * 初始化设置 UI
+   * 初始化设置 UI（已移动到 ui.js，这里只保留导出）
    */
-  function initializeSettingsUI() {
-    const settings = NovelStorage.getSettings();
-    const activeProvider = NovelStorage.getActiveProvider();
-    const providerConfig = NovelStorage.getProviderConfig(activeProvider);
-    const provider = NovelProviders.getProvider(activeProvider);
-
-    // 优先从多提供商配置读取，否则回退到旧设置
-    const apiKey = providerConfig.apiKey || settings.api_key || '';
-    const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
-    const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
-    const temperature = settings.temperature || 0.8;
-
-    document.getElementById('s-api-key').value = apiKey;
-    document.getElementById('s-base-url').value = baseUrl;
-    document.getElementById('s-channel').value = activeProvider || 'dashscope';
-    
-    // 先根据当前渠道初始化模型列表
-    if (typeof NovelUI !== 'undefined' && typeof NovelUI.updateModelOptions === 'function') {
-      NovelUI.updateModelOptions(activeProvider || 'dashscope', model);
-    } else {
-      // 如果 NovelUI 还未加载，直接设置值（向后兼容）
-      document.getElementById('s-model').value = model;
-    }
-    
-    document.getElementById('s-temp').value = temperature;
-    document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
-  }
+  // initializeSettingsUI 函数已移动到 ui.js 中统一管理，避免重复初始化
 
   /**
    * 清空输出框

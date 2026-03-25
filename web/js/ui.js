@@ -39,6 +39,49 @@ const NovelUI = (function() {
   }
 
   /**
+   * 显示编辑项目的弹窗
+   */
+  function showEditModal() {
+    const project = NovelNav.getCurrentProject();
+    if (!project) {
+      NovelUtils.toast('请先打开一个项目', 'error');
+      return;
+    }
+
+    // 填充表单数据
+    const titleInput = document.getElementById('pe-title');
+    const genreSelect = document.getElementById('pe-genre');
+    const promptTextarea = document.getElementById('pe-initial-prompt');
+
+    if (titleInput) titleInput.value = project.title || '';
+    if (genreSelect) genreSelect.value = project.genre || '其他';
+    if (promptTextarea) promptTextarea.value = project.initial_prompt || '';
+
+    // 显示弹窗
+    const overlay = document.getElementById('project-edit-modal');
+    if (overlay) overlay.classList.remove('hidden');
+  }
+
+  /**
+   * 关闭编辑项目弹窗
+   */
+  function closeEditModal() {
+    const overlay = document.getElementById('project-edit-modal');
+    if (overlay) overlay.classList.add('hidden');
+  }
+
+  /**
+   * 处理项目编辑表单提交
+   */
+  function handleEditProjectForm(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    handleEditProject(formData);
+    closeEditModal();
+  }
+
+  /**
    * 处理项目编辑
    */
   function handleEditProject(formData) {
@@ -195,10 +238,20 @@ const NovelUI = (function() {
    */
   function updateModelOptions(channel, selectedModel) {
     const modelSelect = document.getElementById('s-model');
-    if (!modelSelect) return;
+    if (!modelSelect) {
+      console.error('[updateModelOptions] s-model 元素不存在');
+      return;
+    }
 
     const models = NovelProviders.getModels(channel);
-    if (!models || models.length === 0) return;
+    console.log('[updateModelOptions] 渠道:', channel, '模型列表:', models);
+    
+    if (!models || models.length === 0) {
+      console.warn('[updateModelOptions] 渠道', channel, '没有可用的模型');
+      // 即使没有模型，也要清空选项
+      modelSelect.innerHTML = '';
+      return;
+    }
 
     // 清空现有选项
     modelSelect.innerHTML = '';
@@ -214,6 +267,14 @@ const NovelUI = (function() {
     // 设置选中的模型
     if (selectedModel) {
       modelSelect.value = selectedModel;
+      console.log('[updateModelOptions] 设置选中模型:', selectedModel);
+    } else {
+      // 如果没有指定选中模型，使用第一个
+      const firstModel = models[0]?.id;
+      if (firstModel) {
+        modelSelect.value = firstModel;
+        console.log('[updateModelOptions] 未指定选中模型，使用第一个:', firstModel);
+      }
     }
   }
 
@@ -445,6 +506,30 @@ const NovelUI = (function() {
 
     // 大纲生成按钮（会在大纲生成模块中添加）
     // 写作按钮（会在写作模块中添加）
+
+    // 项目编辑按钮
+    const btnEditProject = document.getElementById('btn-edit-project');
+    if (btnEditProject) {
+      btnEditProject.addEventListener('click', showEditModal);
+    }
+
+    // 项目编辑表单提交
+    const projectEditForm = document.getElementById('project-edit-form');
+    if (projectEditForm) {
+      projectEditForm.addEventListener('submit', handleEditProjectForm);
+    }
+
+    // 项目编辑取消按钮
+    const projectEditCancel = document.getElementById('project-edit-cancel');
+    if (projectEditCancel) {
+      projectEditCancel.addEventListener('click', closeEditModal);
+    }
+
+    // 项目编辑关闭按钮
+    const projectEditClose = document.getElementById('project-edit-close');
+    if (projectEditClose) {
+      projectEditClose.addEventListener('click', closeEditModal);
+    }
 
     // 设置相关按钮
     const btnSaveSettings = document.getElementById('btn-save-settings');
@@ -1172,6 +1257,46 @@ const NovelUI = (function() {
   }
 
   /**
+   * 初始化设置 UI
+   */
+  function initializeSettingsUI() {
+    console.log('[initializeSettingsUI] 开始初始化设置 UI');
+    
+    const settings = NovelStorage.getSettings();
+    const activeProvider = NovelStorage.getActiveProvider();
+    const providerConfig = NovelStorage.getProviderConfig(activeProvider);
+    const provider = NovelProviders.getProvider(activeProvider);
+
+    console.log('[initializeSettingsUI] 活跃提供商:', activeProvider);
+    console.log('[initializeSettingsUI] 提供商配置:', providerConfig);
+    console.log('[initializeSettingsUI] 提供商信息:', provider);
+
+    // 优先从多提供商配置读取，否则回退到旧设置
+    const apiKey = providerConfig.apiKey || settings.api_key || '';
+    const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
+    const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
+    const temperature = settings.temperature || 0.8;
+
+    console.log('[initializeSettingsUI] 最终模型:', model);
+
+    // 步骤 1: 先设置渠道下拉框为用户配置的渠道（关键！）
+    document.getElementById('s-channel').value = activeProvider || 'dashscope';
+    
+    // 步骤 2: 填充 API Key 和 Base URL
+    document.getElementById('s-api-key').value = apiKey;
+    document.getElementById('s-base-url').value = baseUrl;
+    
+    // 步骤 3: 根据已设置的渠道更新模型列表（此时渠道已经是用户配置的值）
+    updateModelOptions(activeProvider, model);
+    
+    // 步骤 4: 设置温度
+    document.getElementById('s-temp').value = temperature;
+    document.getElementById('s-temp-label').textContent = temperature.toFixed(2);
+    
+    console.log('[initializeSettingsUI] 设置 UI 初始化完成');
+  }
+
+  /**
    * HTML 转义辅助函数
    */
   function escapeHtml(text) {
@@ -1183,6 +1308,8 @@ const NovelUI = (function() {
   return {
     showCreateModal,
     closeModal,
+    showEditModal,
+    closeEditModal,
     handleCreateProject,
     handleEditProject,
     exportProject,
