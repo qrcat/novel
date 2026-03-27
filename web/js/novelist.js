@@ -617,7 +617,8 @@ ${previousSummary}
               content: `${characterName}在"${situation}"下的${get_query_type_name(queryType)}：${behaviorResponse}`
             });
             
-            NovelUtils.log(`获取到 "${characterName}" 的反应`, 'success');
+
+            NovelUtils.log(`获取到 "${characterName}" 的反应 ${behaviorResponse}`, 'success');
             
           } catch (error) {
             NovelUtils.log('解析工具调用参数失败：' + error.message, 'error');

@@ -105,9 +105,14 @@ const NovelNav = (function() {
   function updateHeaderForHome() {
     const actions = document.getElementById('header-actions');
     if (!actions) return;
-    actions.innerHTML = '<button class="btn btn-primary" id="btn-new-nav">+ 新建小说</button>';
+    actions.innerHTML = `
+      <button class="btn btn-primary" id="btn-new-nav">+ 新建小说</button>
+      <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
+    `;
     const btn = document.getElementById('btn-new-nav');
-    if (btn) btn.addEventListener('click', () => NovelUI.showCreateModal());
+    document.getElementById('btn-new-nav')?.addEventListener('click', () => NovelUI.showCreateModal());
+    document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
+
   }
 
   /**
@@ -122,12 +127,10 @@ const NovelNav = (function() {
       <span class="toolbar-label">${NovelUtils.escape(currentProject.title)}</span>
       <button class="btn btn-ghost" id="btn-save-nav">保存</button>
       <button class="btn btn-ghost" id="btn-export-nav">导出</button>
-      <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
     `;
 
     document.getElementById('btn-save-nav')?.addEventListener('click', () => saveCurrentProject());
     document.getElementById('btn-export-nav')?.addEventListener('click', () => NovelUI.exportProject());
-    document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
   }
 
   /**
@@ -372,22 +375,6 @@ const NovelNav = (function() {
             ${ch.expanded_paragraph ? `<div class="editable-field" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.6">${NovelUtils.escape(ch.expanded_paragraph)}</div>` : '<div class="editable-field empty-hint" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--border);margin-top:.4rem;line-height:1.6;font-style:italic">[点击添加详细内容]</div>'}
             ${ch.scene_setting ? `<div class="editable-field" data-field="scene_setting" style="font-size:.78rem;color:#8b5cf6;margin-top:.3rem"><span style="color:#a78bfa;font-weight:bold">场景：</span><span class="scene-content">${NovelUtils.escape(ch.scene_setting)}</span></div>` : '<div class="editable-field empty-hint" data-field="scene_setting" style="font-size:.78rem;color:var(--border);margin-top:.3rem;font-style:italic">[点击添加场景设定]</div>'}
             ${ch.key_events && ch.key_events.length ? `<div class="chapter-meta editable-field" data-field="key_events"><span class="cur">关键事件</span>${ch.key_events.map(e => `<span>${NovelUtils.escape(e)}</span>`).join('')}</div>` : '<div class="chapter-meta editable-field empty-hint" data-field="key_events" style="margin-top:.4rem"><span style="color:var(--border);font-size:.75rem;font-style:italic">[点击添加关键事件]</span></div>'}
-          </div>
-        `).join('')}
-      </div>`;
-    }
-
-    // 角色弧线（用于右侧边栏）
-    if (outline.character_arcs && outline.character_arcs.length) {
-      sideHTML += `<div style="margin-bottom:1rem">
-        <div class="panel-title" style="margin-bottom:.5rem">角色弧线</div>
-        ${outline.character_arcs.map(arc => `
-          <div class="arc-block">
-            <div class="arc-name">${NovelUtils.escape(arc.character_name || '')}</div>
-            <div style="font-size:.78rem;color:var(--muted);margin-top:.3rem;line-height:1.6">
-              ${arc.initial_state ? '初始：' + NovelUtils.escape(arc.initial_state) + '<br>' : ''}
-              ${arc.final_state ? '终态：' + NovelUtils.escape(arc.final_state) : ''}
-            </div>
           </div>
         `).join('')}
       </div>`;

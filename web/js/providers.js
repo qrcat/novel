@@ -34,8 +34,7 @@ const NovelProviders = (function() {
       name: '🐋 DeepSeek',
       baseUrl: 'https://api.deepseek.com',
       models: [
-        { id: 'deepseek-chat', name: 'DeepSeek Chat (推荐)' },
-        { id: 'deepseek-coder', name: 'DeepSeek Coder (代码)' },
+        { id: 'deepseek-chat', name: 'DeepSeek Chat (对话)' },
         { id: 'deepseek-reasoner', name: 'DeepSeek Reasoner (推理)' }
       ],
       defaultModel: 'deepseek-chat',
