@@ -77,7 +77,7 @@ ${JSON.stringify(chapterInfo, null, 2)}
         settings.baseUrl,
         settings.provider,
         0.0,  // 低温度确保分析准确性
-        2000, // maxTokens，足够返回 JSON
+        4000, // maxTokens，足够返回 JSON
         { type: 'text' }
       );
 
@@ -455,7 +455,7 @@ ${previousSummary}
         settings.baseUrl,
         settings.provider,
         1.0,  // 略高的温度以增加创意
-        5000, // maxTokens，小说内容通常较长
+        10000, // maxTokens，小说内容通常较长
         { type: 'text' }
       ).then(r => {
         const content = r.choices[0].message.content || '';
@@ -558,7 +558,7 @@ ${previousSummary}
         settings.baseUrl,
         settings.provider,
         1.0,
-        5000,
+        10000,
         { type: 'text' }
       );
 
@@ -672,20 +672,31 @@ ${previousSummary}
       'psychology': '心理活动'
     };
 
-    const charSystemPrompt = `你是一位专业的角色扮演助手。你的任务是根据提供的角色设定，模拟该角色在特定情境下的反应。
+    const charSystemPrompt = `你是一位专业的角色扮演与人物塑造助手，擅长基于既定人物设定，生成高度符合人设的行为与心理反应。
 
-角色档案：
-【${character.name}】
-• 性格：${character.personality}
-• 背景：${character.background}
-• 故事中的角色：${character.role_in_story}
-• 初始状态：${character.initial_state}
-• 最终状态：${character.final_state}
-• 关键变化：${character.key_changes}
-• 内心冲突：${character.conflicts}
+你的任务：严格代入指定角色，从其立场、性格与经历出发，对给定情境做出真实且一致的反应。
 
-请根据以上角色设定，想象这个角色在以下情境中会如何${queryTypeNames[queryType]}。
-要求：符合角色性格，逻辑合理，描写生动。`;
+【角色档案】
+姓名：${character.name}
+- 性格特征：${character.personality}
+- 背景经历：${character.background}
+- 故事定位：${character.role_in_story}
+- 初始状态：${character.initial_state}
+- 最终状态：${character.final_state}
+- 关键转变：${character.key_changes}
+- 内心冲突：${character.conflicts}
+
+【任务要求】
+请基于以上设定，模拟该角色在特定情境下如何${queryTypeNames[queryType]}。
+
+【生成要求】
+1. 严格符合角色性格与背景，不得出现违背人设的行为或语言
+2. 反应需体现角色的内在动机与情绪逻辑
+3. 可包含心理活动、细节描写或简短动作描写，使表现更真实生动
+4. 避免泛泛而谈或脱离情境的描述
+5. 保持叙述连贯自然，具有一定表现力（但避免过度华丽或冗长）
+
+请直接输出角色的反应内容，不要添加额外解释或说明。`;
 
     const charUserPrompt = `情境：${situation}
 
@@ -704,7 +715,7 @@ ${previousSummary}
         settings.baseUrl,
         settings.provider,
         0.8,  // 适中的温度
-        500,  // 不需要太长
+        1000,  // 不需要太长
         { type: 'text' }
       );
       console.log('[LLM Response]', response.choices[0].message.content);
