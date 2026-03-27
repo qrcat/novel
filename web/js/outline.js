@@ -53,37 +53,47 @@ const NovelOutlineGen = (function() {
     console.log('[OUTLINE] title:', title);
     console.log('[OUTLINE] genre:', genre);
 
-    const responseFormat = { type: 'json_object' };
-
-    // Phase 1: Theme
-    generateTheme(title, genre, basePrompt, contextPrompt, settings, responseFormat)
+    // Phase 1 和 Phase 2 不需要 responseFormat（纯文本输出，代码层组装 JSON）
+    // Phase 3-6 需要 responseFormat = { type: 'json_object' }
+    
+    // Phase 1: Theme (不需要 JSON 格式)
+    generateTheme(title, genre, basePrompt, contextPrompt, settings, null)
       .then(themeData => {
         NovelUtils.setProgress(15);
-        return generatePlot(title, genre, themeData, basePrompt, contextPrompt, settings, responseFormat)
+        // Phase 2: Plot (不需要 JSON 格式)
+        return generatePlot(title, genre, themeData, basePrompt, contextPrompt, settings, null)
           .then(plotData => ({ themeData, plotData }));
       })
       .then(data => {
         NovelUtils.setProgress(25);
+        // Phase 3: Chapters (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return generateChapters(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(chapters => ({ ...data, chapters }));
       })
       .then(data => {
         NovelUtils.setProgress(35);
+        // Phase 4: Expand Chapters (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return expandChapters(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(() => data);
       })
       .then(data => {
         NovelUtils.setProgress(68);
+        // Phase 5: Character Arcs (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return generateCharacterArcs(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(arcsData => ({ ...data, arcsData }));
       })
       .then(data => {
         NovelUtils.setProgress(80);
+        // Phase 6: World Building (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return generateWorldBuilding(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(worldData => ({ ...data, worldData }));
       })
       .then(data => {
-        assembleAndSaveOutline(project, data);
+        return assembleAndSaveOutline(project, data);
       })
       .catch(err => {
         NovelUtils.log('错误：' + err.message, 'error');
@@ -108,12 +118,28 @@ const NovelOutlineGen = (function() {
     console.log('[OUTLINE] Phase 1: 生成主题');
     console.log('[OUTLINE] Prompt sent to API:', contextPrompt);
     
+    let theme, purpose; // 在函数作用域声明变量，供所有 Promise 链使用
+    
+    // 串行执行三次调用，每次都将之前的对话历史加入
     return NovelAPI.call(
       [
-        { role: 'system', content: '你是小说创作顾问，负责提炼故事的核心。只输出 JSON。' },
+        {
+          role: 'system', 
+          content: '你是一名专业小说创作顾问，擅长提炼故事的核心表达。请用简洁、有概括力的一句话总结主题。只输出结果，不要解释、不要附加说明。' 
+        },
         { 
           role: 'user', 
-          content: `${contextPrompt}\n\n提炼核心主题，返回 JSON：{"theme":"","purpose":"","tone":""}`
+                content: `${contextPrompt}
+
+请基于以上信息，提炼故事的核心主题。
+
+要求：
+- 用一句话表达（20-50 字）
+- 具有抽象性与概括性（如人性、命运、选择、成长等）
+- 避免具体剧情细节
+- 语言简洁有力
+
+请直接输出主题：`
         }
       ],
       null,
@@ -121,13 +147,97 @@ const NovelOutlineGen = (function() {
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.7,
-      800,
+      1.5,
+      400,
       responseFormat
-    ).then(r => {
-      const data = JSON.parse(r.choices[0].message.content);
-      console.log('[OUTLINE] Phase 1 响应:', data);
-      NovelUtils.log('主旨：' + (data.theme || ''), 'success');
+    ).then(themeResponse => {
+      theme = themeResponse.choices[0].message.content.trim();
+      console.log('[OUTLINE]Theme:', theme);
+      
+      // 第二次调用：加入第一次的对话历史
+      return NovelAPI.call(
+        [
+          {
+            role: 'system', 
+            content: '你是一名专业小说创作顾问，擅长明确作品的表达意图。请用一句话说明故事的创作目的。只输出结果，不要解释或补充。' 
+          },
+          { 
+            role: 'user', 
+            content: `${contextPrompt}
+
+已确定主题：
+"${theme}"
+
+请基于该主题，说明本故事的创作目的与想要传达的思想。
+
+要求：
+- 用一句话表达（20-50 字）
+- 明确"为什么要写这个故事"
+- 体现价值观或思想表达
+- 避免重复主题原句
+
+请直接输出创作目的：`
+          }
+        ],
+        null,
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        1.5,
+        400,
+        responseFormat
+      );
+    }).then(purposeResponse => {
+      purpose = purposeResponse.choices[0].message.content.trim();
+      console.log('[OUTLINE]Purpose:', purpose);
+      
+      // 第三次调用：加入前两次的对话历史
+      return NovelAPI.call(
+        [
+          {
+            role: 'system', 
+            content: '你是一名专业小说创作顾问，擅长提炼作品的整体氛围与风格。请用关键词概括基调。只输出结果，不要解释。' 
+          },
+          { 
+            role: 'user', 
+            content: `${contextPrompt}
+
+已确定：
+主题："${theme}"
+创作目的："${purpose}"
+
+请概括故事的整体基调与氛围。
+
+要求：
+- 使用 2-3 个关键词或短语（10-30 字）
+- 关键词之间用顿号或逗号分隔
+- 风格清晰（如：压抑、史诗、温暖、黑暗、荒诞等）
+- 与主题和目的保持一致
+
+请直接输出基调：`
+          }
+        ],
+        null,
+        settings.model,
+        settings.apiKey,
+        settings.baseUrl,
+        settings.provider,
+        1.5,
+        300,
+        responseFormat
+      );
+    }).then(toneResponse => {
+      const tone = toneResponse.choices[0].message.content.trim();
+      console.log('[OUTLINE]Tone:', tone);
+      
+      const data = {
+        theme: theme,
+        purpose: purpose,
+        tone: tone
+      };
+      console.log('[OUTLINE]Phase 1:', data);
+      NovelUtils.log('主旨：' + theme, 'success');
       return data;
     });
   }
@@ -142,10 +252,28 @@ const NovelOutlineGen = (function() {
     
     return NovelAPI.call(
       [
-        { role: 'system', content: '你是小说家，用一段连贯文字概述整本小说。只输出 JSON。' },
+        { 
+          role: 'system', 
+      content: '你是一位专业小说家，擅长构建完整故事结构与情节脉络。请用精炼、连贯的一段文字概述整本小说剧情。只输出正文内容，不要使用JSON或任何额外说明。' 
+        },
         { 
           role: 'user', 
-          content: `标题：${title} 类型：${genre} 主题：${themeData.theme || ''} 基调：${themeData.tone || ''}\n设定：${basePrompt}\n\n用一段（约 200-400 字）概述剧情，返回 JSON：{"plot_paragraph":""}`
+          content: `请根据以下信息生成小说整体剧情概述：
+
+标题：${title}
+类型：${genre}
+主题：${themeData.theme || '未指定'}
+基调：${themeData.tone || '未指定'}
+设定：${basePrompt}
+
+要求：
+- 用一段完整文字（约200-400字）
+- 包含清晰的起承转合（开端、发展、高潮、结局）
+- 突出核心冲突与人物命运变化
+- 风格与“类型”和“基调”保持一致
+- 不要分段、不要列点、不要解释说明
+
+请直接输出最终概述：`
         }
       ],
       null,
@@ -153,12 +281,14 @@ const NovelOutlineGen = (function() {
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.7,
-      1200,
+      1.5,
+      2000,
       responseFormat
     ).then(r => {
-      const data = JSON.parse(r.choices[0].message.content);
-      console.log('[OUTLINE] Phase 2 响应:', data);
+      // 将 AI 输出的纯文本组装为 JSON 格式
+      const plotText = r.choices[0].message.content.trim();
+      const data = { plot_paragraph: plotText };
+      console.log('[OUTLINE] Phase 2 Plot:', plotText);
       NovelUtils.log('段落剧情完成', 'success');
       return data;
     });
@@ -174,10 +304,40 @@ const NovelOutlineGen = (function() {
     
     return NovelAPI.call(
       [
-        { role: 'system', content: '把一段剧情拆分为 N 个章节，每个只一句话描述。只输出 JSON。' },
+        {
+          role: 'system', 
+          content: '你是一名专业小说结构策划师，擅长将完整剧情拆解为清晰的章节结构。请严格按照指定JSON格式输出，不要添加任何解释、说明或多余文本。' 
+        },
         { 
           role: 'user', 
-          content: `标题：${title} 类型：${genre} 主题：${data.themeData.theme || ''}\n剧情：${data.plotData.plot_paragraph || ''}\n\n拆分为章节（8-16 章），返回 JSON：{"total_chapters":0,"chapters":[{"chapter_number":1,"chapter_title":"","one_sentence":""}]}`
+      content: `请根据以下信息，将剧情拆分为章节大纲：
+
+标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+剧情：${data.plotData.plot_paragraph || ''}
+
+要求：
+- 拆分为 6-24 章
+- 每章包含：章节编号、章节标题、剧情一句话概述
+- 每章“一句话”需简洁（15-40字），但包含关键事件或推进
+- 章节之间应具有连贯性与递进关系（起承转合清晰）
+- 标题需简短有吸引力（避免重复或泛化，如“新的开始”）
+- 避免空洞描述（如“发生了一些事情”）
+
+输出格式（必须严格一致）：
+{
+  "total_chapters": 数字,
+  "chapters": [
+    {
+      "chapter_number": 1,
+      "chapter_title": "标题",
+      "one_sentence": "一句话剧情"
+    }
+  ]
+}
+
+请直接输出JSON结果：`
         }
       ],
       null,
@@ -185,7 +345,7 @@ const NovelOutlineGen = (function() {
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.7,
+      1.0,
       1500,
       responseFormat
     ).then(r => {
@@ -214,10 +374,52 @@ const NovelOutlineGen = (function() {
 
       return NovelAPI.call(
         [
-          { role: 'system', content: '将章节一句话扩展为完整段落。只输出 JSON。' },
+          {
+            role: 'system', 
+            content: '你是一名专业小说作者，擅长将章节梗概扩展为完整内容，并输出结构化信息。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
+          },
           { 
             role: 'user', 
-            content: `小说：${title} 类型：${genre} 主题：${data.themeData.theme || ''}\n剧情：${data.plotData.plot_paragraph || ''}\n前一章：${prev}\n本章：${ch.one_sentence || ch.chapter_title || ''}\n下一章：${next}\n\n扩写，返回 JSON：{"chapter_number":0,"chapter_title":"","one_sentence":"","expanded_paragraph":"","scene_setting":"","key_events":[],"characters_involved":[],"plot_progression":""}`
+            content: `请根据以下信息，对章节进行扩写：
+
+小说标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+
+整体剧情概要：
+${data.plotData.plot_paragraph || ''}
+
+上下文：
+- 前一章：${prev}
+- 本章：${ch.one_sentence || ch.chapter_title || ''}
+- 下一章：${next}
+
+要求：
+- expanded_paragraph：扩写为一段完整剧情（100-300字），包含场景、人物行为、冲突或推进
+- scene_setting：简要描述本章主要场景（时间/地点/环境，10-30字）
+- key_events：列出2-4个关键事件（简洁短语）
+- characters_involved：列出涉及角色名称（无则空数组）
+- plot_progression：说明本章在整体剧情中的推进作用（20-50字）
+
+约束：
+- 内容需与上下章逻辑连贯，不得自相矛盾
+- 必须体现剧情推进，避免重复或无效描写
+- 不要扩展出设定之外的新主线
+- 所有字段必须填写（可为空数组，但不能缺失）
+
+输出格式（必须严格一致）：
+{
+  "chapter_number": ${ch.chapter_number || 0},
+  "chapter_title": "${ch.chapter_title || ''}",
+  "one_sentence": "${ch.one_sentence || ''}",
+  "expanded_paragraph": "",
+  "scene_setting": "",
+  "key_events": [],
+  "characters_involved": [],
+  "plot_progression": ""
+}
+
+请直接输出JSON结果：`
           }
         ],
         null,
@@ -225,8 +427,8 @@ const NovelOutlineGen = (function() {
         settings.apiKey,
         settings.baseUrl,
         settings.provider,
-        0.7,
-        1200,
+        1.0,
+        2000,
         responseFormat
       ).then(r => {
         NovelUtils.setProgress(40 + Math.round(i / data.chapters.length * 20));
@@ -260,10 +462,52 @@ const NovelOutlineGen = (function() {
 
     return NovelAPI.call(
       [
-        { role: 'system', content: '根据故事为所有角色设计发展弧线。只输出 JSON。' },
+        { 
+          role: 'system', 
+          content: '你是一名专业小说人物策划师，擅长设计角色成长弧线与人物关系。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
+        },
         { 
           role: 'user', 
-          content: `小说：${title} 类型：${genre} 主题：${data.themeData.theme || ''}\n剧情：${data.plotData.plot_paragraph || ''}\n角色：${unique.join(';')}\n\n角色弧线，返回 JSON：{"character_arcs":[{"character_name":"","initial_state":"","final_state":"","key_changes":[],"conflicts":[]}]}`
+          content: `请根据以下信息，为小说中的主要角色设计完整的发展弧线：
+
+小说标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+
+整体剧情概要：
+${data.plotData.plot_paragraph || ''}
+
+角色列表：
+${unique.join('；') || '无'}
+
+要求：
+- 为每个角色分别设计成长弧线（不要遗漏）
+- initial_state：角色在故事开端的状态（性格/处境/信念，20-50字）
+- final_state：角色在结局时的变化结果（成长/堕落/觉醒等，20-50字）
+- key_changes：列出2-4个关键转折或变化节点（简洁短语）
+- conflicts：列出2-4个核心冲突（内在冲突或人与人/世界冲突）
+
+约束：
+- 所有角色弧线需围绕“主题”展开，体现主题表达
+- 不同角色之间应存在差异（避免重复或模板化）
+- 弧线应与剧情发展合理对应，不得脱离主线
+- 避免空洞描述（如“逐渐成长”“经历困难”）
+- 所有字段必须填写（可为空数组，但不能缺失）
+
+输出格式（必须严格一致）：
+{
+  "character_arcs": [
+    {
+      "character_name": "",
+      "initial_state": "",
+      "final_state": "",
+      "key_changes": [],
+      "conflicts": []
+    }
+  ]
+}
+
+请直接输出JSON结果：`
         }
       ],
       null,
@@ -271,7 +515,7 @@ const NovelOutlineGen = (function() {
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.7,
+      1.0,
       2000,
       responseFormat
     ).then(r => {
@@ -297,10 +541,43 @@ const NovelOutlineGen = (function() {
     
     return NovelAPI.call(
       [
-        { role: 'system', content: '根据故事主题设计世界观。只输出 JSON。' },
+        {
+          role: 'system', 
+          content: '你是一名专业小说世界观设计师，擅长构建清晰、自洽且服务主题的世界设定。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
+        },
         { 
           role: 'user', 
-          content: `小说：${title} 类型：${genre} 主题：${data.themeData.theme || ''}\n剧情：${data.plotData.plot_paragraph || ''}\n\n世界观，返回 JSON：{"time_period":"","location":"","rules_of_world":[],"atmosphere":""}`
+          content: `请根据以下信息，为小说设计完整且自洽的世界观设定：
+
+小说标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+
+整体剧情概要：
+${data.plotData.plot_paragraph || ''}
+
+要求：
+- time_period：明确时间背景（如具体时代/未来阶段/架空纪元，10-30字）
+- location：主要舞台或世界结构（如城市、国家、星球、异世界等，20-50字）
+- rules_of_world：列出3-5条世界运行规则（如社会制度、科技/魔法体系、资源限制等，必须具体）
+- atmosphere：整体氛围（20-50字，需与类型和主题一致）
+
+约束：
+- 世界观必须服务“主题”和“剧情”，不得脱离主线
+- rules_of_world 必须具有“约束力”（能影响角色行为或剧情发展）
+- 避免空洞描述（如“一个神秘的世界”）
+- 各字段之间需逻辑一致，不得自相矛盾
+- 所有字段必须填写（rules_of_world 至少3条）
+
+输出格式（必须严格一致）：
+{
+  "time_period": "",
+  "location": "",
+  "rules_of_world": [],
+  "atmosphere": ""
+}
+
+请直接输出JSON结果：`
         }
       ],
       null,
@@ -308,8 +585,8 @@ const NovelOutlineGen = (function() {
       settings.apiKey,
       settings.baseUrl,
       settings.provider,
-      0.7,
-      1500,
+      1.0,
+      2000,
       responseFormat
     ).then(r => {
       try {
@@ -327,7 +604,7 @@ const NovelOutlineGen = (function() {
   /**
    * 组装并保存大纲
    */
-  function assembleAndSaveOutline(project, data) {
+  async function assembleAndSaveOutline(project, data) {
     NovelUtils.setProgress(95);
     console.log('[OUTLINE] 开始组装大纲');
     console.log('[OUTLINE] 最终数据:', JSON.stringify(data, null, 2));
@@ -346,74 +623,90 @@ const NovelOutlineGen = (function() {
     NovelProject.updateOutline(project.id, outline);
     
     // 【修复】通过智能匹配更新角色，避免重复
-    if (data.arcsData && data.arcsData.length) {
-      NovelUtils.log('开始处理角色弧线...', 'phase');
+    // 使用 async/await + for 循环确保角色全部创建完成后再刷新 UI
+    if (outline.character_arcs && outline.character_arcs.length) {
+      NovelUtils.log(`开始处理 ${outline.character_arcs.length} 个角色...`, 'info');
       
       // 获取当前项目中的角色列表
       const currentProject = NovelNav.getCurrentProject();
-      const existingCharacters = currentProject.characters || [];
+      // 注意：这里需要重新获取最新的项目数据，因为 updateOutline 可能刚写入
+      const freshProject = NovelStorage.getProjectById(project.id);
+      const existingCharacters = freshProject.characters || [];
       
       console.log('[OUTLINE] 现有角色:', existingCharacters);
-      console.log('[OUTLINE] 角色弧线数据:', data.arcsData);
+      console.log('[OUTLINE] 角色弧线数据:', outline.character_arcs);
       
-      // 遍历角色弧线数据
-      (data.arcsData || []).forEach((arc, index) => {
-        setTimeout(() => {
-          // 智能匹配现有角色（基于名字包含关系）
-          const matchedChar = existingCharacters.find(char => {
-            const charName = char.character_name || char.name;
-            const arcName = arc.character_name;
-            // 精确匹配或包含匹配
-            return charName === arcName || 
-                   charName.includes(arcName) || 
-                   arcName.includes(charName);
+      // 串行处理每个角色，确保数据一致性
+      for (let i = 0; i < outline.character_arcs.length; i++) {
+        const arc = outline.character_arcs[i];
+        
+        // 每次循环前重新获取最新角色列表，确保能匹配到刚添加的角色
+        const latestProject = NovelStorage.getProjectById(project.id);
+        const latestCharacters = latestProject.characters || [];
+
+        // 智能匹配现有角色（基于名字包含关系）
+        const matchedChar = latestCharacters.find(char => {
+          const charName = char.character_name || char.name;
+          const arcName = arc.character_name;
+          // 精确匹配或包含匹配
+          return charName === arcName || 
+                 charName.includes(arcName) || 
+                 arcName.includes(charName);
+        });
+        
+        if (matchedChar) {
+          // 更新现有角色
+          NovelUtils.log(`更新角色「${arc.character_name}」...`, 'info');
+          console.log('[OUTLINE] 更新角色:', matchedChar.id, arc);
+          NovelProject.updateCharacter(project.id, matchedChar.id, {
+            initial_state: arc.initial_state,
+            final_state: arc.final_state,
+            key_changes: arc.key_changes || [],
+            conflicts: arc.conflicts || [],
+            personality: arc.personality || matchedChar.personality,
+            background: arc.background || matchedChar.background,
+            role_in_story: arc.role_in_story || matchedChar.role_in_story
           });
-          
-          if (matchedChar) {
-            // 更新现有角色
-            NovelUtils.log(`更新角色「${arc.character_name}」...`, 'info');
-            console.log('[OUTLINE] 更新角色:', matchedChar.id, arc);
-            NovelProject.updateCharacter(currentProject.id, matchedChar.id, {
-              initial_state: arc.initial_state,
-              final_state: arc.final_state,
-              key_changes: arc.key_changes || [],
-              conflicts: arc.conflicts || [],
-              personality: arc.personality || matchedChar.personality,
-              background: arc.background || matchedChar.background,
-              role_in_story: arc.role_in_story || matchedChar.role_in_story
-            });
-          } else {
-            // 创建新角色
-            NovelUtils.log(`创建新角色「${arc.character_name}」...`, 'info');
-            console.log('[OUTLINE] 创建新角色:', arc);
-            NovelProject.addCharacter(currentProject.id, {
-              character_name: arc.character_name,
-              name: arc.character_name,
-              initial_state: arc.initial_state,
-              final_state: arc.final_state,
-              key_changes: arc.key_changes || [],
-              conflicts: arc.conflicts || [],
-              personality: arc.personality || '',
-              background: arc.background || '',
-              role_in_story: arc.role_in_story || '配角',
-              enabled: true
-            });
-          }
-        }, index * 100); // 错开处理时间，避免并发冲突
-      });
+        } else {
+          // 创建新角色
+          NovelUtils.log(`创建新角色「${arc.character_name}」...`, 'info');
+          console.log('[OUTLINE] 创建新角色:', arc);
+          NovelProject.addCharacter(project.id, {
+            character_name: arc.character_name,
+            name: arc.character_name,
+            initial_state: arc.initial_state,
+            final_state: arc.final_state,
+            key_changes: arc.key_changes || [],
+            conflicts: arc.conflicts || [],
+            personality: arc.personality || '',
+            background: arc.background || '',
+            role_in_story: arc.role_in_story || '配角',
+            enabled: true
+          });
+        }
+        
+        // 短暂延迟，避免连续写入 localStorage 的性能问题
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      
+      NovelUtils.log(`角色处理完成，共处理 ${outline.character_arcs.length} 个角色`, 'success');
     }
 
-    // 重新加载项目数据
+    // 重新加载项目数据（确保所有角色已保存）
     const updatedProject = NovelStorage.getProjectById(project.id);
     NovelNav.setCurrentProject(updatedProject);
     NovelNav.applyProjectToUI();
 
     NovelUtils.setProgress(100);
     NovelUtils.log('大纲生成完成!', 'success');
+    
+    NovelUI.renderCharactersList();
+
     NovelNav.showTab('outline');
     NovelUtils.toast('大纲生成完成!');
     console.log('[OUTLINE] === 大纲生成流程结束 ===');
     
+
     // 大纲已就绪，保持生成按钮禁用状态
     const btnOutline = document.getElementById('btn-outline');
     if (btnOutline) {

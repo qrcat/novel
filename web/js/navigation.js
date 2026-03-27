@@ -380,22 +380,6 @@ const NovelNav = (function() {
       </div>`;
     }
 
-    // 角色弧线（用于右侧边栏）
-    if (outline.character_arcs && outline.character_arcs.length) {
-      sideHTML += `<div style="margin-bottom:1rem">
-        <div class="panel-title" style="margin-bottom:.5rem">角色弧线</div>
-        ${outline.character_arcs.map(arc => `
-          <div class="arc-block">
-            <div class="arc-name">${NovelUtils.escape(arc.character_name || '')}</div>
-            <div style="font-size:.78rem;color:var(--muted);margin-top:.3rem;line-height:1.6">
-              ${arc.initial_state ? '初始：' + NovelUtils.escape(arc.initial_state) + '<br>' : ''}
-              ${arc.final_state ? '终态：' + NovelUtils.escape(arc.final_state) : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>`;
-    }
-
     // 更新中间区域
     main.innerHTML = mainHTML || '<div style="color:var(--muted);text-align:center;padding:3rem">大纲内容为空</div>';
     
