@@ -5,7 +5,7 @@
 const NovelStorage = (function() {
   const GLOBAL_KEY = 'na_settings';
   const PROJECTS_KEY = 'na_projects';
-  const PROVIDERS_KEY = 'na_providers';  // 存储多个提供商的API Key配置
+  const PROVIDERS_KEY = 'na_providers';
 
   const DEFAULT_SETTINGS = {
     activeProvider: 'dashscope',  // 当前活跃的提供商
@@ -38,11 +38,13 @@ const NovelStorage = (function() {
     // 保存全局设置
     saveSettings(settings) {
       localStorage.setItem(GLOBAL_KEY, JSON.stringify(settings));
+      console.log('[NovelStorage] Settings saved:', settings);
     },
 
     // 重置全局设置
     resetSettings() {
       localStorage.removeItem(GLOBAL_KEY);
+      console.log('[NovelStorage] Settings reset');
     },
 
     // ========== 多提供商管理 ==========
@@ -64,6 +66,7 @@ const NovelStorage = (function() {
       const configs = this.getAllProviderConfigs();
       configs[providerId] = config;
       localStorage.setItem(PROVIDERS_KEY, JSON.stringify(configs));
+      console.log(`[NovelStorage] Provider "${providerId}" config saved:`, config);
     },
 
     // 设置活跃提供商
@@ -71,9 +74,10 @@ const NovelStorage = (function() {
       const settings = this.getSettings();
       settings.activeProvider = providerId;
       this.saveSettings(settings);
+      console.log(`[NovelStorage] Active provider set to: ${providerId}`);
     },
 
-    // 获取活跃提供商ID
+    // 获取活跃提供商 ID
     getActiveProvider() {
       const settings = this.getSettings();
       return settings.activeProvider || 'dashscope';
@@ -96,9 +100,10 @@ const NovelStorage = (function() {
     // 保存项目列表
     saveProjects(projects) {
       localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects));
+      console.log(`[NovelStorage] Projects saved: ${projects.length} projects`);
     },
 
-    // 根据ID获取项目
+    // 根据 ID 获取项目
     getProjectById(id) {
       const projects = this.getProjects();
       return projects.find(p => p.id === id);
@@ -128,6 +133,93 @@ const NovelStorage = (function() {
       const projects = this.getProjects();
       projects.unshift(project);
       this.saveProjects(projects);
+    },
+
+    // ========== Chrome 调试辅助方法 ==========
+    
+    /**
+     * 在控制台打印所有存储的数据
+     * 使用方法：在 Chrome 控制台输入 NovelStorage.debug()
+     */
+    debug() {
+      console.group('📦 NovelStorage - Debug Info');
+      
+      console.log('\n%c⚙️ 全局设置', 'color: #c9a84c; font-weight: bold;');
+      const settings = this.getSettings();
+      console.table(settings);
+      
+      console.log('\n%c🔌 提供商配置', 'color: #8b5cf6; font-weight: bold;');
+      const providers = this.getAllProviderConfigs();
+      console.table(providers);
+      
+      console.log('\n%c📚 项目列表', 'color: #4caf7d; font-weight: bold;');
+      const projects = this.getProjects();
+      console.table(projects.map(p => ({
+        'ID': p.id,
+        '名称': p.name,
+        '类型': p.genre,
+        '更新时间': p.updated_at
+      })));
+      
+      console.log('\n%c💾 localStorage 原始数据', 'color: #e05c5c; font-weight: bold;');
+      const rawKeys = [GLOBAL_KEY, PROJECTS_KEY, PROVIDERS_KEY];
+      rawKeys.forEach(key => {
+        const value = localStorage.getItem(key);
+        console.log(`${key}:`, value ? JSON.parse(value) : 'null');
+      });
+      
+      console.groupEnd();
+    },
+    
+    /**
+     * 清空所有存储数据
+     * 使用方法：NovelStorage.clearAll()
+     */
+    clearAll() {
+      if (confirm('确定要清空所有存储数据吗？此操作不可恢复！')) {
+        localStorage.removeItem(GLOBAL_KEY);
+        localStorage.removeItem(PROJECTS_KEY);
+        localStorage.removeItem(PROVIDERS_KEY);
+        console.log('[NovelStorage] All data cleared');
+        this.debug();
+      }
+    },
+    
+    /**
+     * 导出存储数据为 JSON
+     * 使用方法：JSON.stringify(NovelStorage.exportData())
+     */
+    exportData() {
+      return {
+        settings: this.getSettings(),
+        providers: this.getAllProviderConfigs(),
+        projects: this.getProjects()
+      };
+    },
+    
+    /**
+     * 从 JSON 导入数据
+     * 使用方法：NovelStorage.importData({settings, providers, projects})
+     */
+    importData(data) {
+      if (data.settings) {
+        this.saveSettings(data.settings);
+      }
+      if (data.providers) {
+        localStorage.setItem(PROVIDERS_KEY, JSON.stringify(data.providers));
+        console.log('[NovelStorage] Providers imported');
+      }
+      if (data.projects) {
+        this.saveProjects(data.projects);
+      }
+      console.log('[NovelStorage] Data imported successfully');
+      this.debug();
     }
   };
 })();
+
+// 确保挂载到 window 对象（Chrome 控制台可访问）
+if (typeof window !== 'undefined') {
+  window.NovelStorage = NovelStorage;
+  console.log('[NovelStorage] Module loaded and attached to window');
+}

@@ -261,6 +261,59 @@ const NovelUI = (function() {
     const btnNew = document.getElementById('btn-new');
     if (btnNew) btnNew.addEventListener('click', showCreateModal);
 
+    // 编辑项目按钮
+    const btnEditProject = document.getElementById('btn-edit-project');
+    if (btnEditProject) {
+      btnEditProject.addEventListener('click', () => {
+        const project = NovelNav.getCurrentProject();
+        if (!project) {
+          NovelUtils.toast('请先打开一个项目', 'error');
+          return;
+        }
+        
+        // 使用现有表单进行编辑（复用创建表单）
+        const titleInput = document.getElementById('new-title');
+        const genreSelect = document.getElementById('new-genre');
+        const promptTextarea = document.getElementById('new-prompt');
+        
+        if (titleInput && genreSelect && promptTextarea) {
+          // 填充当前项目数据
+          titleInput.value = project.title || '';
+          genreSelect.value = project.genre || '玄幻';
+          promptTextarea.value = project.initial_prompt || '';
+          
+          // 修改表单提交行为为编辑模式
+          const formNew = document.getElementById('form-new');
+          if (formNew) {
+            // 移除旧的监听器（如果有）
+            const newForm = formNew.cloneNode(true);
+            formNew.parentNode.replaceChild(newForm, formNew);
+            
+            // 添加新的编辑提交监听器
+            newForm.addEventListener('submit', (e) => {
+              e.preventDefault();
+              handleEditProject(new FormData(e.target));
+              
+              // 关闭弹窗
+              const modal = document.getElementById('create-modal');
+              if (modal) modal.classList.add('hidden');
+              
+              // 重置表单
+              newForm.reset();
+            });
+          }
+          
+          // 显示弹窗
+          const modal = document.getElementById('create-modal');
+          const modalTitle = document.getElementById('modal-title');
+          if (modal) {
+            modal.classList.remove('hidden');
+            if (modalTitle) modalTitle.textContent = '编辑项目信息';
+          }
+        }
+      });
+    }
+
     // 弹窗关闭按钮
     const btnModalClose = document.getElementById('modal-close');
     if (btnModalClose) btnModalClose.addEventListener('click', closeModal);

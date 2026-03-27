@@ -105,9 +105,14 @@ const NovelNav = (function() {
   function updateHeaderForHome() {
     const actions = document.getElementById('header-actions');
     if (!actions) return;
-    actions.innerHTML = '<button class="btn btn-primary" id="btn-new-nav">+ 新建小说</button>';
+    actions.innerHTML = `
+      <button class="btn btn-primary" id="btn-new-nav">+ 新建小说</button>
+      <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
+    `;
     const btn = document.getElementById('btn-new-nav');
-    if (btn) btn.addEventListener('click', () => NovelUI.showCreateModal());
+    document.getElementById('btn-new-nav')?.addEventListener('click', () => NovelUI.showCreateModal());
+    document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
+
   }
 
   /**
@@ -122,12 +127,10 @@ const NovelNav = (function() {
       <span class="toolbar-label">${NovelUtils.escape(currentProject.title)}</span>
       <button class="btn btn-ghost" id="btn-save-nav">保存</button>
       <button class="btn btn-ghost" id="btn-export-nav">导出</button>
-      <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
     `;
 
     document.getElementById('btn-save-nav')?.addEventListener('click', () => saveCurrentProject());
     document.getElementById('btn-export-nav')?.addEventListener('click', () => NovelUI.exportProject());
-    document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
   }
 
   /**
