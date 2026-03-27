@@ -58,14 +58,23 @@ const NovelOutlineGen = (function() {
     
     // Phase 1: Theme (不需要 JSON 格式)
     generateTheme(title, genre, basePrompt, contextPrompt, settings, null)
+    // Phase 1 和 Phase 2 不需要 responseFormat（纯文本输出，代码层组装 JSON）
+    // Phase 3-6 需要 responseFormat = { type: 'json_object' }
+    
+    // Phase 1: Theme (不需要 JSON 格式)
+    generateTheme(title, genre, basePrompt, contextPrompt, settings, null)
       .then(themeData => {
         NovelUtils.setProgress(15);
+        // Phase 2: Plot (不需要 JSON 格式)
+        return generatePlot(title, genre, themeData, basePrompt, contextPrompt, settings, null)
         // Phase 2: Plot (不需要 JSON 格式)
         return generatePlot(title, genre, themeData, basePrompt, contextPrompt, settings, null)
           .then(plotData => ({ themeData, plotData }));
       })
       .then(data => {
         NovelUtils.setProgress(25);
+        // Phase 3: Chapters (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         // Phase 3: Chapters (需要 JSON 格式)
         const responseFormat = { type: 'json_object' };
         return generateChapters(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
@@ -75,11 +84,15 @@ const NovelOutlineGen = (function() {
         NovelUtils.setProgress(35);
         // Phase 4: Expand Chapters (需要 JSON 格式)
         const responseFormat = { type: 'json_object' };
+        // Phase 4: Expand Chapters (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return expandChapters(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(() => data);
       })
       .then(data => {
         NovelUtils.setProgress(68);
+        // Phase 5: Character Arcs (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         // Phase 5: Character Arcs (需要 JSON 格式)
         const responseFormat = { type: 'json_object' };
         return generateCharacterArcs(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
@@ -89,10 +102,13 @@ const NovelOutlineGen = (function() {
         NovelUtils.setProgress(80);
         // Phase 6: World Building (需要 JSON 格式)
         const responseFormat = { type: 'json_object' };
+        // Phase 6: World Building (需要 JSON 格式)
+        const responseFormat = { type: 'json_object' };
         return generateWorldBuilding(title, genre, data, basePrompt, contextPrompt, settings, responseFormat)
           .then(worldData => ({ ...data, worldData }));
       })
       .then(data => {
+        return assembleAndSaveOutline(project, data);
         return assembleAndSaveOutline(project, data);
       })
       .catch(err => {
@@ -121,14 +137,32 @@ const NovelOutlineGen = (function() {
     let theme, purpose; // 在函数作用域声明变量，供所有 Promise 链使用
     
     // 串行执行三次调用，每次都将之前的对话历史加入
+    let theme, purpose; // 在函数作用域声明变量，供所有 Promise 链使用
+    
+    // 串行执行三次调用，每次都将之前的对话历史加入
     return NovelAPI.call(
       [
         {
           role: 'system', 
           content: '你是一名专业小说创作顾问，擅长提炼故事的核心表达。请用简洁、有概括力的一句话总结主题。只输出结果，不要解释、不要附加说明。' 
         },
+        {
+          role: 'system', 
+          content: '你是一名专业小说创作顾问，擅长提炼故事的核心表达。请用简洁、有概括力的一句话总结主题。只输出结果，不要解释、不要附加说明。' 
+        },
         { 
           role: 'user', 
+                content: `${contextPrompt}
+
+请基于以上信息，提炼故事的核心主题。
+
+要求：
+- 用一句话表达（20-50 字）
+- 具有抽象性与概括性（如人性、命运、选择、成长等）
+- 避免具体剧情细节
+- 语言简洁有力
+
+请直接输出主题：`
                 content: `${contextPrompt}
 
 请基于以上信息，提炼故事的核心主题。
@@ -257,7 +291,27 @@ const NovelOutlineGen = (function() {
       content: '你是一位专业小说家，擅长构建完整故事结构与情节脉络。请用精炼、连贯的一段文字概述整本小说剧情。只输出正文内容，不要使用JSON或任何额外说明。' 
         },
         { 
+          role: 'system', 
+      content: '你是一位专业小说家，擅长构建完整故事结构与情节脉络。请用精炼、连贯的一段文字概述整本小说剧情。只输出正文内容，不要使用JSON或任何额外说明。' 
+        },
+        { 
           role: 'user', 
+          content: `请根据以下信息生成小说整体剧情概述：
+
+标题：${title}
+类型：${genre}
+主题：${themeData.theme || '未指定'}
+基调：${themeData.tone || '未指定'}
+设定：${basePrompt}
+
+要求：
+- 用一段完整文字（约200-400字）
+- 包含清晰的起承转合（开端、发展、高潮、结局）
+- 突出核心冲突与人物命运变化
+- 风格与“类型”和“基调”保持一致
+- 不要分段、不要列点、不要解释说明
+
+请直接输出最终概述：`
           content: `请根据以下信息生成小说整体剧情概述：
 
 标题：${title}
@@ -283,8 +337,14 @@ const NovelOutlineGen = (function() {
       settings.provider,
       1.5,
       2000,
+      1.5,
+      2000,
       responseFormat
     ).then(r => {
+      // 将 AI 输出的纯文本组装为 JSON 格式
+      const plotText = r.choices[0].message.content.trim();
+      const data = { plot_paragraph: plotText };
+      console.log('[OUTLINE] Phase 2 Plot:', plotText);
       // 将 AI 输出的纯文本组装为 JSON 格式
       const plotText = r.choices[0].message.content.trim();
       const data = { plot_paragraph: plotText };
@@ -308,8 +368,40 @@ const NovelOutlineGen = (function() {
           role: 'system', 
           content: '你是一名专业小说结构策划师，擅长将完整剧情拆解为清晰的章节结构。请严格按照指定JSON格式输出，不要添加任何解释、说明或多余文本。' 
         },
+        {
+          role: 'system', 
+          content: '你是一名专业小说结构策划师，擅长将完整剧情拆解为清晰的章节结构。请严格按照指定JSON格式输出，不要添加任何解释、说明或多余文本。' 
+        },
         { 
           role: 'user', 
+      content: `请根据以下信息，将剧情拆分为章节大纲：
+
+标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+剧情：${data.plotData.plot_paragraph || ''}
+
+要求：
+- 拆分为 6-24 章
+- 每章包含：章节编号、章节标题、剧情一句话概述
+- 每章“一句话”需简洁（15-40字），但包含关键事件或推进
+- 章节之间应具有连贯性与递进关系（起承转合清晰）
+- 标题需简短有吸引力（避免重复或泛化，如“新的开始”）
+- 避免空洞描述（如“发生了一些事情”）
+
+输出格式（必须严格一致）：
+{
+  "total_chapters": 数字,
+  "chapters": [
+    {
+      "chapter_number": 1,
+      "chapter_title": "标题",
+      "one_sentence": "一句话剧情"
+    }
+  ]
+}
+
+请直接输出JSON结果：`
       content: `请根据以下信息，将剧情拆分为章节大纲：
 
 标题：${title}
@@ -380,8 +472,52 @@ const NovelOutlineGen = (function() {
             role: 'system', 
             content: '你是一名专业小说作者，擅长将章节梗概扩展为完整内容，并输出结构化信息。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
           },
+          {
+            role: 'system', 
+            content: '你是一名专业小说作者，擅长将章节梗概扩展为完整内容，并输出结构化信息。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
+          },
           { 
             role: 'user', 
+            content: `请根据以下信息，对章节进行扩写：
+
+小说标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+
+整体剧情概要：
+${data.plotData.plot_paragraph || ''}
+
+上下文：
+- 前一章：${prev}
+- 本章：${ch.one_sentence || ch.chapter_title || ''}
+- 下一章：${next}
+
+要求：
+- expanded_paragraph：扩写为一段完整剧情（100-300字），包含场景、人物行为、冲突或推进
+- scene_setting：简要描述本章主要场景（时间/地点/环境，10-30字）
+- key_events：列出2-4个关键事件（简洁短语）
+- characters_involved：列出涉及角色名称（无则空数组）
+- plot_progression：说明本章在整体剧情中的推进作用（20-50字）
+
+约束：
+- 内容需与上下章逻辑连贯，不得自相矛盾
+- 必须体现剧情推进，避免重复或无效描写
+- 不要扩展出设定之外的新主线
+- 所有字段必须填写（可为空数组，但不能缺失）
+
+输出格式（必须严格一致）：
+{
+  "chapter_number": ${ch.chapter_number || 0},
+  "chapter_title": "${ch.chapter_title || ''}",
+  "one_sentence": "${ch.one_sentence || ''}",
+  "expanded_paragraph": "",
+  "scene_setting": "",
+  "key_events": [],
+  "characters_involved": [],
+  "plot_progression": ""
+}
+
+请直接输出JSON结果：`
             content: `请根据以下信息，对章节进行扩写：
 
 小说标题：${title}
@@ -469,7 +605,51 @@ ${data.plotData.plot_paragraph || ''}
           content: '你是一名专业小说人物策划师，擅长设计角色成长弧线与人物关系。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
         },
         { 
+          role: 'system', 
+          content: '你是一名专业小说人物策划师，擅长设计角色成长弧线与人物关系。请严格按照指定JSON格式输出，不要添加任何解释、说明或额外文本。' 
+        },
+        { 
           role: 'user', 
+          content: `请根据以下信息，为小说中的主要角色设计完整的发展弧线：
+
+小说标题：${title}
+类型：${genre}
+主题：${data.themeData.theme || '未指定'}
+
+整体剧情概要：
+${data.plotData.plot_paragraph || ''}
+
+角色列表：
+${unique.join('；') || '无'}
+
+要求：
+- 为每个角色分别设计成长弧线（不要遗漏）
+- initial_state：角色在故事开端的状态（性格/处境/信念，20-50字）
+- final_state：角色在结局时的变化结果（成长/堕落/觉醒等，20-50字）
+- key_changes：列出2-4个关键转折或变化节点（简洁短语）
+- conflicts：列出2-4个核心冲突（内在冲突或人与人/世界冲突）
+
+约束：
+- 所有角色弧线需围绕“主题”展开，体现主题表达
+- 不同角色之间应存在差异（避免重复或模板化）
+- 弧线应与剧情发展合理对应，不得脱离主线
+- 避免空洞描述（如“逐渐成长”“经历困难”）
+- 所有字段必须填写（可为空数组，但不能缺失）
+
+输出格式（必须严格一致）：
+{
+  "character_arcs": [
+    {
+      "character_name": "",
+      "initial_state": "",
+      "final_state": "",
+      "key_changes": [],
+      "conflicts": []
+    }
+  ]
+}
+
+请直接输出JSON结果：`
           content: `请根据以下信息，为小说中的主要角色设计完整的发展弧线：
 
 小说标题：${title}
