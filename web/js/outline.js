@@ -148,7 +148,7 @@ const NovelOutlineGen = (function() {
       settings.baseUrl,
       settings.provider,
       1.5,
-      400,
+      1000,
       responseFormat
     ).then(themeResponse => {
       theme = themeResponse.choices[0].message.content.trim();
@@ -185,7 +185,7 @@ const NovelOutlineGen = (function() {
         settings.baseUrl,
         settings.provider,
         1.5,
-        400,
+        1000,
         responseFormat
       );
     }).then(purposeResponse => {
@@ -224,7 +224,7 @@ const NovelOutlineGen = (function() {
         settings.baseUrl,
         settings.provider,
         1.5,
-        300,
+        1000,
         responseFormat
       );
     }).then(toneResponse => {
@@ -346,9 +346,11 @@ const NovelOutlineGen = (function() {
       settings.baseUrl,
       settings.provider,
       1.0,
-      1500,
+      10000,
       responseFormat
     ).then(r => {
+      console.log('[LLM Response]', r.choices[0].message.content);
+
       const outlineData = JSON.parse(r.choices[0].message.content);
       const chapters = outlineData.chapters || [];
       console.log('[OUTLINE] Phase 3 响应:', outlineData);
@@ -428,7 +430,7 @@ ${data.plotData.plot_paragraph || ''}
         settings.baseUrl,
         settings.provider,
         1.0,
-        2000,
+        4000,
         responseFormat
       ).then(r => {
         NovelUtils.setProgress(40 + Math.round(i / data.chapters.length * 20));
@@ -516,7 +518,7 @@ ${unique.join('；') || '无'}
       settings.baseUrl,
       settings.provider,
       1.0,
-      2000,
+      4000,
       responseFormat
     ).then(r => {
       try {
@@ -586,7 +588,7 @@ ${data.plotData.plot_paragraph || ''}
       settings.baseUrl,
       settings.provider,
       1.0,
-      2000,
+      4000,
       responseFormat
     ).then(r => {
       try {
