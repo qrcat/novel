@@ -148,7 +148,7 @@ const NovelOutlineGen = (function() {
       settings.baseUrl,
       settings.provider,
       1.5,
-      1000,
+      1024,
       responseFormat
     ).then(themeResponse => {
       theme = themeResponse.choices[0].message.content.trim();
@@ -185,7 +185,7 @@ const NovelOutlineGen = (function() {
         settings.baseUrl,
         settings.provider,
         1.5,
-        1000,
+        1024,
         responseFormat
       );
     }).then(purposeResponse => {
@@ -224,7 +224,7 @@ const NovelOutlineGen = (function() {
         settings.baseUrl,
         settings.provider,
         1.5,
-        1000,
+        1024,
         responseFormat
       );
     }).then(toneResponse => {
@@ -282,7 +282,7 @@ const NovelOutlineGen = (function() {
       settings.baseUrl,
       settings.provider,
       1.5,
-      2000,
+      2048,
       responseFormat
     ).then(r => {
       // 将 AI 输出的纯文本组装为 JSON 格式
@@ -346,7 +346,7 @@ const NovelOutlineGen = (function() {
       settings.baseUrl,
       settings.provider,
       1.0,
-      10000,
+      8192,
       responseFormat
     ).then(r => {
       console.log('[LLM Response]', r.choices[0].message.content);
@@ -430,7 +430,7 @@ ${data.plotData.plot_paragraph || ''}
         settings.baseUrl,
         settings.provider,
         1.0,
-        4000,
+        4096,
         responseFormat
       ).then(r => {
         NovelUtils.setProgress(40 + Math.round(i / data.chapters.length * 20));
@@ -518,7 +518,7 @@ ${unique.join('；') || '无'}
       settings.baseUrl,
       settings.provider,
       1.0,
-      4000,
+      4096,
       responseFormat
     ).then(r => {
       try {
@@ -588,7 +588,7 @@ ${data.plotData.plot_paragraph || ''}
       settings.baseUrl,
       settings.provider,
       1.0,
-      4000,
+      4096,
       responseFormat
     ).then(r => {
       try {

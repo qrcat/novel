@@ -210,8 +210,15 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
         <div class="info-row"><span class="info-label">标题</span><span class="info-value" id="info-title">-</span></div>
         <div class="info-row"><span class="info-label">类型</span><span class="info-value" id="info-genre">-</span></div>
         <div class="info-row"><span class="info-label">章节</span><span class="info-value" id="info-chapter">-</span></div>
-        <div class="info-row"><span class="info-label">角色</span><span class="info-value" id="info-chars">-</span></div>
         <div class="info-row"><span class="info-label">状态</span><span class="info-value" id="info-status">-</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel-title">初始设定</div>
+      <div class="info-block">
+        <div class="info-row" style="display:block">
+          <div id="info-prompt" style="font-size:.85rem;line-height:1.6;white-space:pre-wrap;color:var(--text)">-</div>
+        </div>
       </div>
     </div>
   </aside>
@@ -384,6 +391,30 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
             &#35282;&#33394; Agent &#22312;&#29983;&#25104;&#27491;&#25991;&#26102;&#26368;&#22810;&#36827;&#34892;&#22810;&#23752;&#26597;&#35810;&#65292;&#36991;&#20813;&#26080;&#38480;&#24490;&#29615;&#12290;&#24314;&#35758;&#35774;&#32622;&#20026; 5-15 &#36718;
           </p>
         </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>&#20801;&#35765; Agent &#32534;&#36753;&#35282;&#33394;</span>
+            <label class="switch">
+              <input type="checkbox" id="s-allow-agent-edit-character">
+              <span class="slider"></span>
+            </label>
+          </label>
+          <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem">
+            &#21551;&#29992;&#21518;&#65292;Agent &#21487;&#26681;&#25454;&#21019;&#20316;&#36827;&#31243;&#33258;&#21160;&#26356;&#26032;&#35282;&#33394;&#26723;&#26696;&#65292;&#21253;&#25324;&#24615;&#26684;&#12289;&#32463;&#21382;&#21644;&#25104;&#38271;&#36712;&#36857;
+          </p>
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>&#20801;&#35765; Agent &#32534;&#36753;&#22823;&#32434;</span>
+            <label class="switch">
+              <input type="checkbox" id="s-allow-agent-edit-outline">
+              <span class="slider"></span>
+            </label>
+          </label>
+          <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem">
+            &#21551;&#29992;&#21518;&#65292;Agent &#21487;&#26681;&#25454;&#24050;&#20889;&#30340;&#31456;&#33410;&#20869;&#23481;&#33258;&#21160;&#35843;&#25972;&#21518;&#32493;&#22823;&#32434;&#65292;&#30830;&#20445;&#21095;&#24773;&#36830;&#36141;&#21644;&#36923;&#36753;&#19968;&#33268;
+          </p>
+        </div>
       </div>
 
       <div style="display:flex;gap:.75rem;flex-wrap:wrap">
@@ -445,11 +476,11 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
     <form id="project-edit-form" class="modal-form">
       <div class="form-group">
         <label class="form-label">标题</label>
-        <input type="text" id="pe-title" placeholder="小说标题" required>
+        <input type="text" id="pe-title" name="title" placeholder="小说标题" required>
       </div>
       <div class="form-group">
         <label class="form-label">类型</label>
-        <select id="pe-genre">
+        <select id="pe-genre" name="genre">
           <option value="悬疑推理">悬疑推理</option>
           <option value="都市言情">都市言情</option>
           <option value="科幻">科幻</option>
@@ -462,7 +493,7 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
       </div>
       <div class="form-group">
         <label class="form-label">初始设定</label>
-        <textarea id="pe-initial-prompt" rows="4" placeholder="故事背景、人物关系、核心悬念等..."></textarea>
+        <textarea id="pe-initial-prompt" name="initial_prompt" rows="4" placeholder="故事背景、人物关系、核心悬念等..."></textarea>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-ghost" id="project-edit-cancel">取消</button>
@@ -481,6 +512,16 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
 <script src="web/js/navigation.js"></script>
 <script src="web/js/ui.js"></script>
 <script src="web/js/outline.js"></script>
+
+<!-- Novelist 子模块（按依赖顺序） -->
+<script src="web/js/chapter-detection.js"></script>
+<script src="web/js/character-agent.js"></script>
+<script src="web/js/character-reaction.js"></script>
+<script src="web/js/character-update.js"></script>
+<script src="web/js/outline-modification.js"></script>
+<script src="web/js/novel-generator.js"></script>
+
+<!-- Novelist 主入口 -->
 <script src="web/js/novelist.js"></script>
 <script src="web/js/app.js"></script>
 </body>

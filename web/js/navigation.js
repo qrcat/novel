@@ -215,7 +215,7 @@ const NovelNav = (function() {
   }
 
   /**
-   * 将项目数据应用到UI
+   * 将项目数据应用到 UI
    */
   function applyProjectToUI() {
     if (!currentProject) return;
@@ -225,10 +225,13 @@ const NovelNav = (function() {
     const infoGenre = document.getElementById('info-genre');
     const infoChapter = document.getElementById('info-chapter');
     const infoStatus = document.getElementById('info-status');
+    const infoPrompt = document.getElementById('info-prompt');
 
     if (infoTitle) infoTitle.textContent = currentProject.title || '-';
     if (infoGenre) infoGenre.textContent = currentProject.genre || '-';
     if (infoChapter) infoChapter.textContent = '第 ' + (currentProject.writing_chapter || 1) + ' 章';
+    if (infoStatus) infoStatus.textContent = currentProject.outline && Object.keys(currentProject.outline).length ? '大纲就绪' : '等待大纲';
+    if (infoPrompt) infoPrompt.textContent = currentProject.initial_prompt || '-';
 
     // 检查大纲状态
     const outlineContainer = document.getElementById('outline-container');
@@ -762,14 +765,28 @@ const NovelNav = (function() {
 
     const settings = NovelStorage.getSettings();
 
+    // 关键修复：优先从 providerConfig 读取 Agent 配置，否则回退到 settings
+    const hasProviderConfig = providerConfig && (providerConfig.apiKey || providerConfig.baseUrl || providerConfig.model);
+    
     return {
       provider: activeProvider,
       apiKey: providerConfig.apiKey || '',
       baseUrl: baseUrl,
       model: providerConfig.model || provider.defaultModel,
       temperature: settings.temperature || 0.8,
-      characterAgentEnabled: settings.characterAgentEnabled || false,
-      characterAgentMaxRounds: settings.characterAgentMaxRounds || 10,
+      // 优先从 providerConfig 读取，确保不同渠道可以有独立的 Agent 配置
+      characterAgentEnabled: hasProviderConfig && providerConfig.characterAgentEnabled !== undefined 
+        ? providerConfig.characterAgentEnabled 
+        : (settings.characterAgentEnabled || false),
+      characterAgentMaxRounds: hasProviderConfig && providerConfig.characterAgentMaxRounds !== undefined 
+        ? providerConfig.characterAgentMaxRounds 
+        : (settings.characterAgentMaxRounds || 10),
+      allowAgentEditCharacter: hasProviderConfig && providerConfig.allowAgentEditCharacter !== undefined 
+        ? providerConfig.allowAgentEditCharacter 
+        : (settings.allowAgentEditCharacter ?? true),
+      allowAgentEditOutline: hasProviderConfig && providerConfig.allowAgentEditOutline !== undefined 
+        ? providerConfig.allowAgentEditOutline 
+        : (settings.allowAgentEditOutline ?? true),
       providerInfo: provider
     };
   }
@@ -787,6 +804,8 @@ const NovelNav = (function() {
       temperature: settings.temperature || 0.8,
       characterAgentEnabled: settings.characterAgentEnabled || false,
       characterAgentMaxRounds: settings.characterAgentMaxRounds || 10,
+      allowAgentEditCharacter: settings.allowAgentEditCharacter ?? true,
+      allowAgentEditOutline: settings.allowAgentEditOutline ?? true,
       providerInfo: NovelProviders.getProvider('dashscope')
     };
   }

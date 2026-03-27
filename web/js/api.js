@@ -24,6 +24,8 @@ const NovelAPI = (function() {
       provider = null;
     }
 
+    console.debug('[Calling LLM API...]', { messages, tools, model, baseUrl, provider, temperature, maxTokens, responseFormat });
+
     // Claude API需要特殊处理
     if (provider === 'claude' || baseUrl?.includes('anthropic')) {
       return callClaudeAPI(messages, model, apiKey, baseUrl, temperature, maxTokens);
@@ -60,7 +62,7 @@ const NovelAPI = (function() {
         return obj;
       }),
       temperature: temperature || 0.8,
-      max_tokens: maxTokens || 1000
+      max_tokens: maxTokens || 1024,
     };
 
     if (responseFormat) body.response_format = responseFormat;
@@ -68,7 +70,7 @@ const NovelAPI = (function() {
       body.tools = tools;
     }
 
-    NovelUtils.log('LLM 调用 (' + model + ')...', 'phase');
+    NovelUtils.log('LLM 调用 (' + model + ')...', 'debug');
 
     return fetch(baseUrl + '/chat/completions', {
       method: 'POST',
@@ -101,7 +103,7 @@ const NovelAPI = (function() {
 
     const body = {
       model: model || 'claude-opus',
-      max_tokens: maxTokens || 1000,
+      max_tokens: maxTokens || 1024,
       temperature: temperature || 0.8,
       messages: userMessages
     };
