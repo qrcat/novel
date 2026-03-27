@@ -51,6 +51,12 @@ const NovelUI = (function() {
       initial_prompt: formData.get('initial_prompt')
     });
 
+    // 重新获取最新的项目数据并设置到内存缓存
+    const updatedProject = NovelStorage.getProjectById(project.id);
+    if (updatedProject) {
+      NovelNav.setCurrentProject(updatedProject);
+    }
+    
     NovelUtils.toast('项目已更新');
     NovelNav.applyProjectToUI();
   }
@@ -88,6 +94,8 @@ const NovelUI = (function() {
     const temperature = parseFloat(document.getElementById('s-temp').value);
     const characterAgentEnabled = document.getElementById('s-character-agent')?.checked || false;
     const characterAgentMaxRounds = parseInt(document.getElementById('s-character-agent-max-rounds')?.value || '10');
+    const allowAgentEditCharacter = document.getElementById('s-allow-agent-edit-character')?.checked ?? true;
+    const allowAgentEditOutline = document.getElementById('s-allow-agent-edit-outline')?.checked ?? true;
 
     // 保存全局设置（向后兼容）
     const settings = {
@@ -97,14 +105,21 @@ const NovelUI = (function() {
       model: model,
       temperature: temperature,
       characterAgentEnabled: characterAgentEnabled,
-      characterAgentMaxRounds: characterAgentMaxRounds
+      characterAgentMaxRounds: characterAgentMaxRounds,
+      allowAgentEditCharacter: allowAgentEditCharacter,
+      allowAgentEditOutline: allowAgentEditOutline
     };
     NovelStorage.saveSettings(settings);
 
     // 同时保存到多提供商存储（使用用户刚选择的 channel，而不是旧的 activeProvider）
     const providerConfig = {
       apiKey: apiKey,
-      model: model
+      model: model,
+      // 将 Agent 配置也同步到多提供商配置中，确保不同渠道可以有独立的 Agent 设置
+      characterAgentEnabled: characterAgentEnabled,
+      characterAgentMaxRounds: characterAgentMaxRounds,
+      allowAgentEditCharacter: allowAgentEditCharacter,
+      allowAgentEditOutline: allowAgentEditOutline
     };
     if (baseUrl) {
       providerConfig.baseUrl = baseUrl;
@@ -190,6 +205,31 @@ const NovelUI = (function() {
     
     // 动态更新模型列表
     updateModelOptions(channel, providerConfig.model || (provider ? provider.defaultModel : ''));
+    
+    // 同步更新 Agent 配置（如果该渠道有独立配置）
+    const characterAgentToggle = document.getElementById('s-character-agent');
+    if (characterAgentToggle && providerConfig.characterAgentEnabled !== undefined) {
+      characterAgentToggle.checked = providerConfig.characterAgentEnabled;
+    }
+    
+    const maxRoundsSlider = document.getElementById('s-character-agent-max-rounds');
+    const maxRoundsValue = document.getElementById('s-max-rounds-value');
+    if (maxRoundsSlider && providerConfig.characterAgentMaxRounds !== undefined) {
+      maxRoundsSlider.value = providerConfig.characterAgentMaxRounds;
+      if (maxRoundsValue) {
+        maxRoundsValue.textContent = providerConfig.characterAgentMaxRounds;
+      }
+    }
+    
+    const allowAgentEditCharacterToggle = document.getElementById('s-allow-agent-edit-character');
+    if (allowAgentEditCharacterToggle && providerConfig.allowAgentEditCharacter !== undefined) {
+      allowAgentEditCharacterToggle.checked = providerConfig.allowAgentEditCharacter;
+    }
+    
+    const allowAgentEditOutlineToggle = document.getElementById('s-allow-agent-edit-outline');
+    if (allowAgentEditOutlineToggle && providerConfig.allowAgentEditOutline !== undefined) {
+      allowAgentEditOutlineToggle.checked = providerConfig.allowAgentEditOutline;
+    }
 
     NovelUtils.toast(`已切换到 ${provider ? provider.name : channel}`);
   }
@@ -272,9 +312,9 @@ const NovelUI = (function() {
         }
         
         // 使用现有表单进行编辑（复用创建表单）
-        const titleInput = document.getElementById('new-title');
-        const genreSelect = document.getElementById('new-genre');
-        const promptTextarea = document.getElementById('new-prompt');
+        const titleInput = document.getElementById('pe-title');
+        const genreSelect = document.getElementById('pe-genre');
+        const promptTextarea = document.getElementById('pe-initial-prompt');
         
         if (titleInput && genreSelect && promptTextarea) {
           // 填充当前项目数据
@@ -283,7 +323,7 @@ const NovelUI = (function() {
           promptTextarea.value = project.initial_prompt || '';
           
           // 修改表单提交行为为编辑模式
-          const formNew = document.getElementById('form-new');
+          const formNew = document.getElementById('project-edit-form');
           if (formNew) {
             // 移除旧的监听器（如果有）
             const newForm = formNew.cloneNode(true);
@@ -295,21 +335,17 @@ const NovelUI = (function() {
               handleEditProject(new FormData(e.target));
               
               // 关闭弹窗
-              const modal = document.getElementById('create-modal');
+              const modal = document.getElementById('project-edit-modal');
               if (modal) modal.classList.add('hidden');
-              
+
               // 重置表单
-              newForm.reset();
+              newForm.reset();              
             });
           }
           
           // 显示弹窗
-          const modal = document.getElementById('create-modal');
-          const modalTitle = document.getElementById('modal-title');
-          if (modal) {
-            modal.classList.remove('hidden');
-            if (modalTitle) modalTitle.textContent = '编辑项目信息';
-          }
+          const modal = document.getElementById('project-edit-modal');
+          if (modal) modal.classList.remove('hidden');
         }
       });
     }
@@ -317,6 +353,33 @@ const NovelUI = (function() {
     // 弹窗关闭按钮
     const btnModalClose = document.getElementById('modal-close');
     if (btnModalClose) btnModalClose.addEventListener('click', closeModal);
+
+    // 项目编辑表单提交
+    const projectEditForm = document.getElementById('project-edit-form');
+    if (projectEditForm) {
+      projectEditForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleEditProject(new FormData(e.target));
+        
+        // 关闭弹窗
+        const modal = document.getElementById('project-edit-modal');
+        if (modal) modal.classList.add('hidden');
+
+        // 重置表单
+        projectEditForm.reset();
+      });
+    }
+
+    // 项目编辑取消按钮
+    const projectEditCancel = document.getElementById('project-edit-cancel');
+    if (projectEditCancel) {
+      projectEditCancel.addEventListener('click', () => {
+        const modal = document.getElementById('project-edit-modal');
+        if (modal) modal.classList.add('hidden');
+        const form = document.getElementById('project-edit-form');
+        if (form) form.reset();
+      });
+    }
 
     // 表单提交
     const formNew = document.getElementById('form-new');
@@ -575,6 +638,7 @@ const NovelUI = (function() {
       name: name,
       personality: personality || '',
       initial_state: personality || '',
+      current_state: '',
       final_state: '',
       key_changes: [],
       conflicts: []
@@ -992,6 +1056,7 @@ const NovelUI = (function() {
       outline.character_arcs.forEach(arc => {
         text += '\n' + (arc.character_name || '') + '\n';
         text += '初始：' + (arc.initial_state || '') + '\n';
+        text += '当前：' + (arc.current_state || '') + '\n';
         text += '终态：' + (arc.final_state || '') + '\n';
       });
     }
@@ -1055,6 +1120,7 @@ const NovelUI = (function() {
       const personality = char.personality || '';
       const background = char.background || '';
       const initialState = char.initial_state || '';
+      const currentState = char.current_state || '';  // 新增：当前状态
       const finalState = char.final_state || '';
       const roleInStory = char.role_in_story || '配角';
       const keyChanges = char.key_changes || [];
@@ -1064,10 +1130,11 @@ const NovelUI = (function() {
       let richnessTags = [];
       if (personality) richnessTags.push('性格特征');
       if (background) richnessTags.push('背景故事');
-      if (initialState || finalState) {
-        // 只要有初始或最终状态就显示成长弧线标签
+      if (initialState || currentState || finalState) {
+        // 只要有初始、当前或最终状态就显示成长弧线标签
         const arcLabels = [];
         if (initialState) arcLabels.push('初始');
+        if (currentState) arcLabels.push('当前');
         if (finalState) arcLabels.push('终态');
         richnessTags.push(`成长弧线 (${arcLabels.join('/')})`);
       }
@@ -1093,6 +1160,7 @@ const NovelUI = (function() {
             <strong class="section-label arc-label">成长轨迹：</strong>
             <div class="arc-content">
               ${initialState ? `<div class="arc-state initial editable-field" data-field="initial_state" data-index="${index}"><span class="state-icon">🌱</span><span class="state-label">初始：</span>${escapeHtml(initialState)}</div>` : '<div class="arc-state initial editable-field empty-hint" data-field="initial_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加初始状态]</div>'}
+              ${currentState ? `<div class="arc-state current editable-field" data-field="current_state" data-index="${index}"><span class="state-icon">🔄</span><span class="state-label">当前：</span>${escapeHtml(currentState)}</div>` : '<div class="arc-state current editable-field empty-hint" data-field="current_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加当前状态]</div>'}
               ${finalState ? `<div class="arc-state final editable-field" data-field="final_state" data-index="${index}"><span class="state-icon">✨</span><span class="state-label">终态：</span>${escapeHtml(finalState)}</div>` : '<div class="arc-state final editable-field empty-hint" data-field="final_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加最终状态]</div>'}
             </div>
           </div>
@@ -1204,12 +1272,12 @@ const NovelUI = (function() {
         renderCharactersList();
         NovelUtils.toast('已更新角色');
       });
-    } else if (fieldName === 'initial_state' || fieldName === 'final_state') {
+    } else if (fieldName === 'initial_state' || fieldName === 'current_state' || fieldName === 'final_state') {
       // 单行输入框
       editor = document.createElement('input');
       editor.type = 'text';
       editor.value = currentValue;
-      editor.placeholder = fieldName === 'initial_state' ? '初始状态...' : '最终状态...';
+      editor.placeholder = fieldName === 'initial_state' ? '初始状态...' : (fieldName === 'current_state' ? '当前状态...' : '最终状态...');
       editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.75rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
       
       editor.addEventListener('blur', () => {
@@ -1270,15 +1338,34 @@ const NovelUI = (function() {
     console.log('[initializeSettingsUI] 提供商配置:', providerConfig);
     console.log('[initializeSettingsUI] 提供商信息:', provider);
 
-    // 优先从多提供商配置读取，否则回退到旧设置
-    const apiKey = providerConfig.apiKey || settings.api_key || '';
-    const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : '');
-    const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
+    // 关键修复：优先从多提供商配置读取，如果没有则回退到旧设置
+    // 需要检查 providerConfig 是否真的有值，而不是空对象
+    const hasProviderConfig = providerConfig && (providerConfig.apiKey || providerConfig.baseUrl || providerConfig.model);
+    
+    const apiKey = hasProviderConfig ? providerConfig.apiKey : (settings.api_key || '');
+    const baseUrl = hasProviderConfig ? providerConfig.baseUrl : (settings.base_url || (provider ? provider.baseUrl : ''));
+    const model = hasProviderConfig ? providerConfig.model : (settings.model || (provider ? provider.defaultModel : 'qwen-plus'));
     const temperature = settings.temperature || 0.8;
-    const characterAgentEnabled = settings.characterAgentEnabled || false;
-    const characterAgentMaxRounds = settings.characterAgentMaxRounds || 10;
+    
+    // 优先从 providerConfig 读取 Agent 配置，否则回退到 settings
+    const characterAgentEnabled = hasProviderConfig && providerConfig.characterAgentEnabled !== undefined 
+      ? providerConfig.characterAgentEnabled 
+      : (settings.characterAgentEnabled || false);
+    const characterAgentMaxRounds = hasProviderConfig && providerConfig.characterAgentMaxRounds !== undefined 
+      ? providerConfig.characterAgentMaxRounds 
+      : (settings.characterAgentMaxRounds || 10);
+    const allowAgentEditCharacter = hasProviderConfig && providerConfig.allowAgentEditCharacter !== undefined 
+      ? providerConfig.allowAgentEditCharacter 
+      : (settings.allowAgentEditCharacter ?? true);
+    const allowAgentEditOutline = hasProviderConfig && providerConfig.allowAgentEditOutline !== undefined 
+      ? providerConfig.allowAgentEditOutline 
+      : (settings.allowAgentEditOutline ?? true);
 
     console.log('[initializeSettingsUI] 最终模型:', model);
+    console.log('[initializeSettingsUI] 角色 Agent 启用:', characterAgentEnabled);
+    console.log('[initializeSettingsUI] 最大查询轮次:', characterAgentMaxRounds);
+    console.log('[initializeSettingsUI] 允许编辑角色:', allowAgentEditCharacter);
+    console.log('[initializeSettingsUI] 允许编辑大纲:', allowAgentEditOutline);
 
     // 步骤 1: 先设置渠道下拉框为用户配置的渠道（关键！）
     document.getElementById('s-channel').value = activeProvider || 'dashscope';
@@ -1308,6 +1395,17 @@ const NovelUI = (function() {
       if (maxRoundsValue) {
         maxRoundsValue.textContent = characterAgentMaxRounds;
       }
+    }
+    
+    // 步骤 7: 设置 Agent 编辑权限开关状态
+    const allowAgentEditCharacterToggle = document.getElementById('s-allow-agent-edit-character');
+    if (allowAgentEditCharacterToggle) {
+      allowAgentEditCharacterToggle.checked = allowAgentEditCharacter;
+    }
+    
+    const allowAgentEditOutlineToggle = document.getElementById('s-allow-agent-edit-outline');
+    if (allowAgentEditOutlineToggle) {
+      allowAgentEditOutlineToggle.checked = allowAgentEditOutline;
     }
     
     console.log('[initializeSettingsUI] 设置 UI 初始化完成');
