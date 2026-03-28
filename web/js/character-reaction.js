@@ -223,7 +223,7 @@ ${characterIdMap.map((c, i) => `- **ID**: "${c.id}" | 名称："${c.name}" | 定
         settings.apiKey,
         settings.baseUrl,
         settings.provider,
-        0.0,
+        0.7,
         8192,
         { type: 'text' }
       );
