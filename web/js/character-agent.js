@@ -138,7 +138,7 @@ ${formattedChapterInfo}
         settings.apiKey,
         settings.baseUrl,
         settings.provider,
-        0.0,  // 低温度确保分析准确性
+        0.7,  // 低温度确保分析准确性
         4096, // maxTokens，足够返回 JSON
         { type: 'text' }
       );

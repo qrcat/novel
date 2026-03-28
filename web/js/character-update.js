@@ -59,30 +59,17 @@ ${chapters.slice(0, 10).map((ch, idx) =>
     const evidence = updates.evidence;
     const updatedChar = { ...existingChar };
 
-    // ========== 数组型字段：增量更新（追加新模式）==========
-    // key_changes：累积列表，只追加不覆盖
+    // ========== 数组型字段：直接覆盖（全文汇总）==========
+    // key_changes：整本小说范围内的关键成长/事件汇总，直接覆盖
     if (updates.key_changes && Array.isArray(updates.key_changes)) {
-      const existingChanges = Array.isArray(existingChar.key_changes) ? existingChar.key_changes : [];
-      // 过滤掉已存在的内容，避免重复
-      const newChanges = updates.key_changes.filter(
-        change => !existingChanges.includes(change)
-      );
-      updatedChar.key_changes = [...existingChanges, ...newChanges];
-      if (newChanges.length > 0) {
-        NovelUtils.log(`📝 新增 ${newChanges.length} 条关键变化，累计 ${updatedChar.key_changes.length} 条`, 'phase');
-      }
+      updatedChar.key_changes = updates.key_changes;
+      NovelUtils.log(`📝 关键成长/事件已更新（共 ${updatedChar.key_changes.length} 条）`, 'phase');
     }
 
-    // conflicts：累积列表，只追加不覆盖
+    // conflicts：整本小说范围内的内心冲突/矛盾汇总，直接覆盖
     if (updates.conflicts && Array.isArray(updates.conflicts)) {
-      const existingConflicts = Array.isArray(existingChar.conflicts) ? existingChar.conflicts : [];
-      const newConflicts = updates.conflicts.filter(
-        conflict => !existingConflicts.includes(conflict)
-      );
-      updatedChar.conflicts = [...existingConflicts, ...newConflicts];
-      if (newConflicts.length > 0) {
-        NovelUtils.log(`📝 新增 ${newConflicts.length} 条内心冲突，累计 ${updatedChar.conflicts.length} 条`, 'phase');
-      }
+      updatedChar.conflicts = updates.conflicts;
+      NovelUtils.log(`📝 内心冲突/矛盾已更新（共 ${updatedChar.conflicts.length} 条）`, 'phase');
     }
 
     // ========== 文本型字段：直接覆盖（全新描述）==========
@@ -150,11 +137,11 @@ ${chapters.slice(0, 10).map((ch, idx) =>
     // 格式化现有角色档案（包含完整历史信息）
     const charactersContext = characterProfiles.map(char => {
       const keyChangesText = Array.isArray(char.key_changes) && char.key_changes.length > 0
-        ? `\n  - 关键成长（累积）：${char.key_changes.join(';')}`
+        ? `\n  - 关键成长（全文汇总）：${char.key_changes.join(';')}`
         : '';
 
       const conflictsText = Array.isArray(char.conflicts) && char.conflicts.length > 0
-        ? `\n  - 内心冲突（累积）：${char.conflicts.join(';')}`
+        ? `\n  - 内心冲突（全文汇总）：${char.conflicts.join(';')}`
         : '';
 
       return `【${char.name}】(ID: ${char.id})
@@ -183,6 +170,7 @@ ${novelContent}
 
 【更新策略】
 - 只处理"有新增信息或变化"的角色 (无变化则跳过)
+- **最小更改原则**: 能不修改就不修改，只有在本章内容确实导致角色设定发生实质性变化时才进行更新
 - 所有更新必须基于本章具体描写，不做推测或脑补
 - 更新应与既有设定保持一致，避免突兀或断裂
 - 优先关注:
@@ -192,16 +180,16 @@ ${novelContent}
   - 关键经历节点
 
 【字段规范 (必须严格理解)】
-⚠️ **增量更新字段 **(追加模式):
+✅ **直接覆盖字段 **(全新描述):
 - key_changes: 
-  - 角色在"整本小说范围内"的关键成长/事件
-  - 系统会自动**追加**到已有列表，不会覆盖
-  - 只需提供本章**新增**的关键成长或事件
+  - 角色在"整本小说范围内"的关键成长/事件汇总
+  - 系统会用新内容**完全替换**旧内容
+  - 请提供截至本章的**完整**关键成长/事件列表（包含之前的所有内容）
 
 - conflicts:
-  - 角色在"整本小说范围内"的内心冲突/矛盾
-  - 系统会自动**追加**到已有列表，不会覆盖
-  - 只需提供本章**新增**的内心冲突或挣扎
+  - 角色在"整本小说范围内"的内心冲突/矛盾汇总
+  - 系统会用新内容**完全替换**旧内容
+  - 请提供截至本章的**完整**内心冲突/矛盾列表（包含之前的所有内容）
 
 ✅ **直接覆盖字段 **(全新描述):
 - personality:
@@ -263,6 +251,10 @@ ${novelContent}
 
 【角色发展分析师指南】
 
+【核心原则】
+- **最小更改原则**: 能不修改就不修改，只有在本章内容确实导致角色设定发生实质性变化时才进行更新
+- 保持角色设定的连续性和稳定性，避免过度解读或频繁修改
+
 【核心任务】
 - 识别本章中"发生了实质变化或新增信息"的角色
 - 提取角色的成长、性格补充、冲突演化或背景揭示
@@ -280,6 +272,7 @@ ${novelContent}
 
 【更新策略】
 - 只处理"有新增信息或变化"的角色 (无变化则跳过)
+- **最小更改原则**: 能不修改就不修改，只有在本章内容确实导致角色设定发生实质性变化时才进行更新
 - 所有更新必须基于本章具体描写，不做推测或脑补
 - 更新应与既有设定保持一致，避免突兀或断裂
 - 优先关注:
@@ -289,16 +282,16 @@ ${novelContent}
   - 关键经历节点
 
 【字段规范 (必须严格理解)】
-⚠️ **增量更新字段 **(追加模式):
+✅ **直接覆盖字段 **(全新描述):
 - key_changes: 
-  - 角色在"整本小说范围内"的关键成长/事件
-  - 系统会自动**追加**到已有列表，不会覆盖
-  - 只需提供本章**新增**的关键成长或事件
+  - 角色在"整本小说范围内"的关键成长/事件汇总
+  - 系统会用新内容**完全替换**旧内容
+  - 请提供截至本章的**完整**关键成长/事件列表（包含之前的所有内容）
 
 - conflicts:
-  - 角色在"整本小说范围内"的内心冲突/矛盾
-  - 系统会自动**追加**到已有列表，不会覆盖
-  - 只需提供本章**新增**的内心冲突或挣扎
+  - 角色在"整本小说范围内"的内心冲突/矛盾汇总
+  - 系统会用新内容**完全替换**旧内容
+  - 请提供截至本章的**完整**内心冲突/矛盾列表（包含之前的所有内容）
 
 ✅ **直接覆盖字段 **(全新描述):
 - personality:
@@ -359,12 +352,12 @@ ${novelContent}
               key_changes: {
                 type: 'array',
                 items: { type: 'string' },
-                description: '角色在整本小说中经历的所有关键成长、转变或重要事件【累积】'
+                description: '角色在整本小说中经历的所有关键成长、转变或重要事件【全文汇总·直接覆盖】'
               },
               conflicts: {
                 type: 'array',
                 items: { type: 'string' },
-                description: '角色在整本小说中展现的所有内心冲突、矛盾或挣扎【累积】'
+                description: '角色在整本小说中展现的所有内心冲突、矛盾或挣扎【全文汇总·直接覆盖】'
               },
               personality: {
                 type: 'string',
@@ -477,7 +470,7 @@ ${novelContent}
         settings.apiKey,
         settings.baseUrl,
         settings.provider,
-        0.0,
+        0.7,
         8192,
         { type: 'text' }
       );
@@ -635,9 +628,9 @@ ${novelContent}
               NovelUtils.log(`未知的工具调用：${toolCall.function.name}`, 'warning');
               // 未知工具，也要创建响应消息
               messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `错误：未知的工具调用 ${toolCall.function.name}`
+                  role: 'tool',
+                  tool_call_id: toolCall.id,
+                  content: `错误：未知的工具调用 ${toolCall.function.name}`
               });
             }
           } catch (error) {
