@@ -7,6 +7,18 @@ const NovelProject = (function() {
    * 创建新项目
    */
   function createProject(data) {
+    // 获取全局设置中的 API 配置
+    const settings = NovelStorage.getSettings();
+    const activeProvider = NovelStorage.getActiveProvider();
+    const providerConfig = NovelStorage.getProviderConfig(activeProvider);
+    const provider = NovelProviders.getProvider(activeProvider);
+    
+    // 优先从多提供商配置读取，否则回退到旧设置
+    const apiKey = providerConfig.apiKey || settings.api_key || '';
+    const baseUrl = providerConfig.baseUrl || settings.base_url || (provider ? provider.baseUrl : 'https://dashscope.aliyuncs.com/compatible-mode/v1');
+    const model = providerConfig.model || settings.model || (provider ? provider.defaultModel : 'qwen-plus');
+    const temperature = settings.temperature || 0.8;
+
     const project = {
       id: NovelUtils.uuid(),
       title: data.title,
@@ -18,10 +30,6 @@ const NovelProject = (function() {
       conv_history: [],
       writing_chapter: 1,
       current_scene: '',
-      api_key: data.api_key || '',
-      base_url: data.base_url || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      model: data.model || 'qwen-plus',
-      temperature: data.temperature || 0.8,
       updated_at: new Date().toISOString()
     };
 

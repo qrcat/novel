@@ -26,11 +26,7 @@ const NovelUI = (function() {
     const project = NovelProject.createProject({
       title: formData.get('title'),
       genre: formData.get('genre'),
-      initial_prompt: formData.get('initial_prompt'),
-      api_key: formData.get('api_key') || '',
-      base_url: formData.get('base_url') || '',
-      model: formData.get('model') || '',
-      temperature: parseFloat(formData.get('temperature') || 0.8)
+      initial_prompt: formData.get('initial_prompt')
     });
 
     NovelUtils.toast('项目已创建');
@@ -69,6 +65,59 @@ const NovelUI = (function() {
     if (!project) return;
     NovelProject.exportProject(project);
     NovelUtils.toast('已导出');
+  }
+
+  /**
+   * 导入项目
+   */
+  function importProject() {
+    // 创建隐藏的文件输入框
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.style.display = 'none';
+    
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const project = JSON.parse(text);
+        
+        // 验证基本结构
+        if (!project || !project.id || !project.title) {
+          throw new Error('无效的项目文件格式');
+        }
+        
+        // 生成新 ID 避免冲突
+        const newProjectId = NovelUtils.uuid();
+        const oldId = project.id;
+        
+        // 更新项目 ID 和时间戳
+        project.id = newProjectId;
+        project.created_at = new Date().toISOString();
+        project.updated_at = new Date().toISOString();
+        
+        // 添加到存储
+        NovelStorage.addProject(project);
+        NovelUtils.toast(`成功导入：${project.title}`, 'success');
+        
+        // 刷新项目列表并跳转到该项目
+        NovelNav.goHome();
+        NovelNav.openProject(newProjectId);
+        
+      } catch (err) {
+        console.error('导入失败:', err);
+        NovelUtils.toast('导入失败：' + err.message, 'error');
+      } finally {
+        // 清理文件输入框
+        input.remove();
+      }
+    });
+    
+    document.body.appendChild(input);
+    input.click();
   }
 
   /**
@@ -296,6 +345,12 @@ const NovelUI = (function() {
     // Logo点击返回首页
     const logoBtn = document.getElementById('logo-btn');
     if (logoBtn) logoBtn.addEventListener('click', () => NovelNav.goHome());
+
+    // 导入项目按钮
+    const btnImport = document.getElementById('btn-import');
+    if (btnImport) {
+      btnImport.addEventListener('click', importProject);
+    }
 
     // 新建项目按钮
     const btnNew = document.getElementById('btn-new');
@@ -1152,31 +1207,25 @@ const NovelUI = (function() {
           
           ${roleInStory !== '配角' ? `<div class="character-role-tag">定位：${escapeHtml(roleInStory)}</div>` : ''}
           
-          ${personality ? `<div class="character-section editable-field" data-field="personality" data-index="${index}"><strong class="section-label">性格：</strong><span class="section-content">${escapeHtml(personality)}</span></div>` : '<div class="character-section editable-field empty-hint" data-field="personality" data-index="' + index + '" style="font-style:italic;color:var(--border)">[点击添加性格描述]</div>'}
+          ${personality ? `<div style="align-items:flex-start;margin-bottom:.5rem"><strong class="section-label" style="white-space:nowrap;margin-right:.35rem">性格：</strong><span class="character-section editable-field section-content" data-field="personality" data-index="${index}" style="flex:1;min-width:0">${escapeHtml(personality)}</span></div>` : '<div class="character-section editable-field empty-hint" data-field="personality" data-index="' + index + '" style="font-style:italic;color:var(--border)">[点击添加性格描述]</div>'}
           
-          ${background ? `<div class="character-section editable-field" data-field="background" data-index="${index}"><strong class="section-label">背景：</strong><span class="section-content">${escapeHtml(background)}</span></div>` : '<div class="character-section editable-field empty-hint" data-field="background" data-index="' + index + '" style="font-style:italic;color:var(--border)">[点击添加背景故事]</div>'}
+          ${background ? `<div style="align-items:flex-start;margin-bottom:.5rem"><strong class="section-label" style="white-space:nowrap;margin-right:.35rem">背景：</strong><span class="character-section editable-field section-content" data-field="background" data-index="${index}" style="flex:1;min-width:0">${escapeHtml(background)}</span></div>` : '<div class="character-section editable-field empty-hint" data-field="background" data-index="' + index + '" style="font-style:italic;color:var(--border)">[点击添加背景故事]</div>'}
           
           <div class="character-section arc-section">
-            <strong class="section-label arc-label">成长轨迹：</strong>
-            <div class="arc-content">
-              ${initialState ? `<div class="arc-state initial editable-field" data-field="initial_state" data-index="${index}"><span class="state-icon">🌱</span><span class="state-label">初始：</span>${escapeHtml(initialState)}</div>` : '<div class="arc-state initial editable-field empty-hint" data-field="initial_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加初始状态]</div>'}
-              ${currentState ? `<div class="arc-state current editable-field" data-field="current_state" data-index="${index}"><span class="state-icon">🔄</span><span class="state-label">当前：</span>${escapeHtml(currentState)}</div>` : '<div class="arc-state current editable-field empty-hint" data-field="current_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加当前状态]</div>'}
-              ${finalState ? `<div class="arc-state final editable-field" data-field="final_state" data-index="${index}"><span class="state-icon">✨</span><span class="state-label">终态：</span>${escapeHtml(finalState)}</div>` : '<div class="arc-state final editable-field empty-hint" data-field="final_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加最终状态]</div>'}
+            <strong class="section-label arc-label" style="display:block;margin-bottom:.35rem">成长轨迹：</strong>
+            <div class="arc-content" style="flex-direction:column;gap:.25rem">
+              ${initialState ? `<div style="align-items:flex-start"><span style="white-space:nowrap;margin-right:.35rem"><span class="state-icon">🌱</span><span class="state-label">初态：</span></span><div class="arc-state initial editable-field" data-field="initial_state" data-index="${index}" style="flex:1;min-width:0">${escapeHtml(initialState)}</div></div>` : '<div class="arc-state initial editable-field empty-hint" data-field="initial_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加初始状态]</div>'}
+              ${currentState ? `<div style="align-items:flex-start"><span style="white-space:nowrap;margin-right:.35rem"><span class="state-icon">🔄</span><span class="state-label">当前：</span></span><div class="arc-state current editable-field" data-field="current_state" data-index="${index}" style="flex:1;min-width:0">${escapeHtml(currentState)}</div></div>` : '<div class="arc-state current editable-field empty-hint" data-field="current_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加当前状态]</div>'}
+              ${finalState ? `<div style="align-items:flex-start"><span style="white-space:nowrap;margin-right:.35rem"><span class="state-icon">✨</span><span class="state-label">终态：</span></span><div class="arc-state final editable-field" data-field="final_state" data-index="${index}" style="flex:1;min-width:0">${escapeHtml(finalState)}</div></div>` : '<div class="arc-state final editable-field empty-hint" data-field="final_state" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加最终状态]</div>'}
             </div>
           </div>
           
           ${keyChanges.length > 0 ? `
-            <div class="character-meta-field editable-field" data-field="key_changes" data-index="${index}">
-              <span class="meta-label">关键变化：</span>
-              <div class="meta-items">${keyChanges.map(item => `<span class="meta-item">${escapeHtml(item)}</span>`).join('')}</div>
-            </div>
+            <div style="align-items:flex-start;margin-top:.5rem"><span class="meta-label" style="white-space:nowrap;margin-right:.35rem">关键变化：</span><div class="character-meta-field editable-field" data-field="key_changes" data-index="${index}" style="flex:1;min-width:0"><div class="meta-items">${keyChanges.map(item => `<span class="meta-item">${escapeHtml(item)}</span>`).join('')}</div></div></div>
           ` : '<div class="character-meta-field editable-field empty-hint" data-field="key_changes" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加关键变化]</div>'}
           
           ${conflicts.length > 0 ? `
-            <div class="character-meta-field editable-field" data-field="conflicts" data-index="${index}">
-              <span class="meta-label">内心冲突：</span>
-              <div class="meta-items">${conflicts.map(item => `<span class="meta-item conflict">${escapeHtml(item)}</span>`).join('')}</div>
-            </div>
+            <div style="align-items:flex-start;margin-top:.5rem"><span class="meta-label" style="white-space:nowrap;margin-right:.35rem">内心冲突：</span><div class="character-meta-field editable-field" data-field="conflicts" data-index="${index}" style="flex:1;min-width:0"><div class="meta-items">${conflicts.map(item => `<span class="meta-item conflict">${escapeHtml(item)}</span>`).join('')}</div></div></div>
           ` : '<div class="character-meta-field editable-field empty-hint" data-field="conflicts" data-index="' + index + '" style="font-style:italic;color:var(--border);cursor:pointer">[点击添加内心冲突]</div>'}
           
           <div class="character-meta">
@@ -1229,80 +1278,69 @@ const NovelUI = (function() {
     const character = project.characters[index];
     const currentValue = character[fieldName] || '';
     
-    // 根据字段类型创建不同的编辑器
-    let editor;
+    // 所有字段统一使用多行文本框
+    const editor = document.createElement('textarea');
+    editor.value = currentValue;
     
-    if (fieldName === 'key_changes' || fieldName === 'conflicts') {
-      // 数组型字段：使用逗号分隔的输入框（类似大纲关键事件）
-      const itemsArray = Array.isArray(character[fieldName]) ? character[fieldName] : [];
-      editor = document.createElement('input');
-      editor.type = 'text';
-      editor.value = itemsArray.join(', ');
-      editor.placeholder = fieldName === 'key_changes' 
-        ? '用英文逗号分隔多个关键变化' 
-        : '用英文逗号分隔多个内心冲突';
-      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.75rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
-      
-      editor.addEventListener('blur', () => {
-        const newValue = editor.value.trim();
-        // 使用英文逗号分割，并过滤空白项
-        const itemsArray = newValue.split(/,/).map(s => s.trim()).filter(s => s);
-        character[fieldName] = itemsArray;
-        
-        // 持久化到存储
-        NovelStorage.updateProject(project.id, { characters: project.characters });
-        
-        // 重新渲染角色列表
-        renderCharactersList();
-        
-        NovelUtils.toast('已更新' + (fieldName === 'key_changes' ? '关键变化' : '内心冲突'));
-      });
-    } else if (fieldName === 'personality' || fieldName === 'background') {
-      // 多行文本框
-      editor = document.createElement('textarea');
-      editor.value = currentValue;
-      editor.placeholder = fieldName === 'personality' ? '添加性格描述...' : '添加背景故事...';
-      editor.rows = 3;
-      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.78rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit; resize:vertical;';
-      
-      editor.addEventListener('blur', () => {
-        const newValue = editor.value.trim();
-        character[fieldName] = newValue;
-        NovelStorage.updateProject(project.id, { characters: project.characters });
-        renderCharactersList();
-        NovelUtils.toast('已更新角色');
-      });
-    } else if (fieldName === 'initial_state' || fieldName === 'current_state' || fieldName === 'final_state') {
-      // 单行输入框
-      editor = document.createElement('input');
-      editor.type = 'text';
-      editor.value = currentValue;
-      editor.placeholder = fieldName === 'initial_state' ? '初始状态...' : (fieldName === 'current_state' ? '当前状态...' : '最终状态...');
-      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.75rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
-      
-      editor.addEventListener('blur', () => {
-        const newValue = editor.value.trim();
-        character[fieldName] = newValue;
-        NovelStorage.updateProject(project.id, { characters: project.characters });
-        renderCharactersList();
-        NovelUtils.toast('已更新角色');
-      });
-    } else {
-      // 默认单行输入框
-      editor = document.createElement('input');
-      editor.type = 'text';
-      editor.value = currentValue;
-      editor.placeholder = '点击输入内容';
-      editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.78rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit;';
-      
-      editor.addEventListener('blur', () => {
-        const newValue = editor.value.trim();
-        character[fieldName] = newValue;
-        NovelStorage.updateProject(project.id, { characters: project.characters });
-        renderCharactersList();
-        NovelUtils.toast('已更新角色');
-      });
+    // 根据字段设置不同的占位符和行数
+    let placeholder = '点击输入内容...';
+    let rows = 3;
+    
+    if (fieldName === 'personality') {
+      placeholder = '添加性格描述...';
+      rows = 4;
+    } else if (fieldName === 'background') {
+      placeholder = '添加背景故事...';
+      rows = 5;
+    } else if (fieldName === 'initial_state') {
+      placeholder = '初始状态...';
+      rows = 3;
+    } else if (fieldName === 'current_state') {
+      placeholder = '当前状态...';
+      rows = 3;
+    } else if (fieldName === 'final_state') {
+      placeholder = '最终状态...';
+      rows = 3;
+    } else if (fieldName === 'key_changes') {
+      placeholder = '每行一个关键变化';
+      rows = 4;
+    } else if (fieldName === 'conflicts') {
+      placeholder = '每行一个内心冲突';
+      rows = 4;
     }
+    
+    editor.placeholder = placeholder;
+    editor.rows = rows;
+    editor.style.cssText = 'width:100%; padding:.3rem .5rem; font-size:.78rem; background:var(--surface2); border:1px solid var(--accent); border-radius:4px; color:var(--text); font-family:inherit; resize:vertical; white-space:pre-wrap; word-wrap:break-word;';
+    
+    editor.addEventListener('blur', () => {
+      const newValue = editor.value.trim();
+      
+      // 对于 key_changes 和 conflicts，按行分割为数组
+      if (fieldName === 'key_changes' || fieldName === 'conflicts') {
+        const itemsArray = newValue.split('\n').map(s => s.trim()).filter(s => s);
+        character[fieldName] = itemsArray;
+      } else {
+        character[fieldName] = newValue;
+      }
+      
+      // 持久化到存储
+      NovelStorage.updateProject(project.id, { characters: project.characters });
+      
+      // 重新渲染角色列表
+      renderCharactersList();
+      
+      const fieldLabels = {
+        personality: '性格',
+        background: '背景',
+        initial_state: '初始状态',
+        current_state: '当前状态',
+        final_state: '终态',
+        key_changes: '关键变化',
+        conflicts: '内心冲突'
+      };
+      NovelUtils.toast('已更新' + (fieldLabels[fieldName] || '角色'));
+    });
 
     // 处理 Enter 键保存（多行文本除外）
     editor.addEventListener('keydown', (e) => {
@@ -1426,6 +1464,7 @@ const NovelUI = (function() {
     handleCreateProject,
     handleEditProject,
     exportProject,
+    importProject,
     deleteCurrentProject,
     saveGlobalSettings,
     resetGlobalSettings,
