@@ -4,12 +4,48 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Novel Agents</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<!-- 样式内联（确保加载） -->
 <style>
+/* 定义字体变量，优先使用本地字体 */
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-weight: 300;
+  font-display: swap;
+  src: local('Noto Serif SC Light'), local('NotoSerifSC-Light'), local('Songti SC Light'), local('STSong'), local('SimSun');
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-weight: 400;
+  font-display: swap;
+  src: local('Noto Serif SC Regular'), local('NotoSerifSC-Regular'), local('Songti SC Regular'), local('STSong'), local('SimSun');
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-weight: 700;
+  font-display: swap;
+  src: local('Noto Serif SC Bold'), local('NotoSerifSC-Bold'), local('Songti SC Bold'), local('STSong'), local('SimHei');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-weight: 300;
+  font-display: swap;
+  src: local('DM Mono Light'), local('DM Mono'), local('Courier New'), local('Courier'), monospace;
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-weight: 400;
+  font-display: swap;
+  src: local('DM Mono Regular'), local('DM Mono'), local('Courier New'), local('Courier'), monospace;
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-weight: 500;
+  font-display: swap;
+  src: local('DM Mono Medium'), local('DM Mono'), local('Courier New'), local('Courier'), monospace;
+}
+
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0c0b0f;--surface:#16141a;--surface2:#1e1b24;--border:#2a2733;--text:#e8e4df;--muted:#7a7485;--accent:#c9a84c;--accent2:#8b5cf6;--danger:#e05c5c;--success:#4caf7d}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Serif SC',serif;background-image:radial-gradient(ellipse at 15% 0%,rgba(201,168,76,.06) 0%,transparent 50%),radial-gradient(ellipse at 85% 100%,rgba(139,92,246,.05) 0%,transparent 50%)}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Serif SC','Songti SC','STSong',SimSun,serif;background-image:radial-gradient(ellipse at 15% 0%,rgba(201,168,76,.06) 0%,transparent 50%),radial-gradient(ellipse at 85% 100%,rgba(139,92,246,.05) 0%,transparent 50%)}
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-track{background:var(--surface)}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
@@ -22,7 +58,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto S
 .btn-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
 .icon-btn{background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:.9rem;padding:.2rem .4rem;border-radius:4px;transition:all .15s}
 .icon-btn:hover{color:var(--text);background:var(--surface2)}
-input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:.8rem;padding:.5rem .7rem;width:100%;transition:border-color .2s;outline:none}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'DM Mono','Courier New',Courier,monospace;font-size:.8rem;padding:.5rem .7rem;width:100%;transition:border-color .2s;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:80px}
 select{cursor:pointer}
@@ -147,8 +183,8 @@ input[type=range]{flex:1;height:3px;background:var(--border);border-radius:2px;b
 .novel-content-wrapper{flex:1;overflow:auto;position:relative}
 .novel-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.8);flex-shrink:0}
 .outline-toolbar{display:flex;justify-content:flex-end;gap:.5rem;padding:.5rem 2rem;border-top:1px solid var(--border);background:rgba(22,20,26,.95);flex-shrink:0}
-#novel-editor{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;border:none;outline:none;background:transparent;color:var(--text);font-family:'Noto Serif SC',serif;resize:none}
-.output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono',monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
+#novel-editor{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;padding:2rem 3rem;font-size:1.05rem;line-height:2.2;white-space:pre-wrap;word-break:break-word;max-width:800px;margin:0 auto;border:none;outline:none;background:transparent;color:var(--text);font-family:'Noto Serif SC','Songti SC','STSong',SimSun,serif;resize:none}
+.output-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow-y:auto;padding:.75rem;font-family:'DM Mono','Courier New',Courier,monospace;font-size:.73rem;line-height:1.8;white-space:pre-wrap;word-break:break-word;color:var(--text);min-height:180px;max-height:55vh;flex:1}
 
 /* Switch Toggle Style */
 .switch{position:relative;display:inline-block;width:44px;height:24px}
@@ -181,7 +217,7 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
   </div>
   <div class="header-actions" id="header-actions">
     <button class="btn btn-primary" id="btn-new">+ 新建小说</button>
-
+    <button class="btn btn-ghost" id="btn-import">📥 导入</button>
     <button class="btn btn-ghost" id="btn-settings-header">&#9881; 设置</button>
   </div>
 </div>
@@ -504,25 +540,27 @@ input:checked+.slider:before{transform:translateX(20px);background-color:#0c0b0f
 </div>
 
 <!-- 应用脚本 - 模块化架构 -->
-<script src="web/js/storage.js"></script>
-<script src="web/js/utils.js"></script>
-<script src="web/js/providers.js"></script>
-<script src="web/js/api.js"></script>
-<script src="web/js/project.js"></script>
-<script src="web/js/navigation.js"></script>
-<script src="web/js/ui.js"></script>
-<script src="web/js/outline.js"></script>
+<!-- 优化 4: 使用 defer 延迟加载非关键脚本，让 DOM 先解析 -->
+<script src="web/js/storage.js" defer></script>
+<script src="web/js/utils.js" defer></script>
+<script src="web/js/providers.js" defer></script>
+<script src="web/js/api.js" defer></script>
+<script src="web/js/project.js" defer></script>
+<script src="web/js/navigation.js" defer></script>
+<script src="web/js/ui.js" defer></script>
+<script src="web/js/outline.js" defer></script>
 
 <!-- Novelist 子模块（按依赖顺序） -->
-<script src="web/js/chapter-detection.js"></script>
-<script src="web/js/character-agent.js"></script>
-<script src="web/js/character-reaction.js"></script>
-<script src="web/js/character-update.js"></script>
-<script src="web/js/outline-modification.js"></script>
-<script src="web/js/novel-generator.js"></script>
+<script src="web/js/chapter-detection.js" defer></script>
+<script src="web/js/character-agent.js" defer></script>
+<script src="web/js/character-reaction.js" defer></script>
+<script src="web/js/character-update.js" defer></script>
+<script src="web/js/outline-modification.js" defer></script>
+<script src="web/js/novel-generator.js" defer></script>
 
 <!-- Novelist 主入口 -->
-<script src="web/js/novelist.js"></script>
-<script src="web/js/app.js"></script>
+<script src="web/js/novelist.js" defer></script>
+<!-- 优化 5: app.js 作为入口文件，需要等待所有依赖加载完成 -->
+<script src="web/js/app.js" defer></script>
 </body>
 </html>

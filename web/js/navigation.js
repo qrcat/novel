@@ -100,17 +100,18 @@ const NovelNav = (function() {
   }
 
   /**
-   * 更新首页的header
+   * 更新首页的 header
    */
   function updateHeaderForHome() {
     const actions = document.getElementById('header-actions');
     if (!actions) return;
     actions.innerHTML = `
       <button class="btn btn-primary" id="btn-new-nav">+ 新建小说</button>
+      <button class="btn btn-ghost" id="btn-import-nav">📥 导入</button>
       <button class="btn btn-ghost" id="btn-settings-nav">⚙️ 设置</button>
     `;
-    const btn = document.getElementById('btn-new-nav');
     document.getElementById('btn-new-nav')?.addEventListener('click', () => NovelUI.showCreateModal());
+    document.getElementById('btn-import-nav')?.addEventListener('click', () => NovelUI.importProject());
     document.getElementById('btn-settings-nav')?.addEventListener('click', () => goSettings(true));
 
   }
@@ -376,7 +377,7 @@ const NovelNav = (function() {
             <div class="chapter-title editable-field" data-field="chapter_title">${NovelUtils.escape(ch.chapter_title || '')}</div>
             <div class="chapter-one-sentence editable-field" data-field="one_sentence" style="min-height:1.6em">${NovelUtils.escape(ch.one_sentence || '')}</div>
             ${ch.expanded_paragraph ? `<div class="editable-field" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--muted);margin-top:.4rem;line-height:1.6">${NovelUtils.escape(ch.expanded_paragraph)}</div>` : '<div class="editable-field empty-hint" data-field="expanded_paragraph" style="font-size:.82rem;color:var(--border);margin-top:.4rem;line-height:1.6;font-style:italic">[点击添加详细内容]</div>'}
-            ${ch.scene_setting ? `<div class="editable-field" data-field="scene_setting" style="font-size:.78rem;color:#8b5cf6;margin-top:.3rem"><span style="color:#a78bfa;font-weight:bold">场景：</span><span class="scene-content">${NovelUtils.escape(ch.scene_setting)}</span></div>` : '<div class="editable-field empty-hint" data-field="scene_setting" style="font-size:.78rem;color:var(--border);margin-top:.3rem;font-style:italic">[点击添加场景设定]</div>'}
+            ${ch.scene_setting ? `<div style="font-size:.78rem;color:#8b5cf6;margin-top:.3rem;display:flex;align-items:flex-start"><span style="color:#a78bfa;font-weight:bold;white-space:nowrap;margin-right:.35rem">场景：</span><span class="editable-field scene-content" data-field="scene_setting" style="flex:1;min-width:0">${NovelUtils.escape(ch.scene_setting)}</span></div>` : '<div class="editable-field empty-hint" data-field="scene_setting" style="font-size:.78rem;color:var(--border);margin-top:.3rem;font-style:italic">[点击添加场景设定]</div>'}
             ${ch.key_events && ch.key_events.length ? `<div class="chapter-meta editable-field" data-field="key_events"><span class="cur">关键事件</span>${ch.key_events.map(e => `<span>${NovelUtils.escape(e)}</span>`).join('')}</div>` : '<div class="chapter-meta editable-field empty-hint" data-field="key_events" style="margin-top:.4rem"><span style="color:var(--border);font-size:.75rem;font-style:italic">[点击添加关键事件]</span></div>'}
           </div>
         `).join('')}
